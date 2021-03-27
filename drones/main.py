@@ -4,22 +4,36 @@ It's where the API entrypoints are accessed and used for the purpose of the proj
 """
 
 import logging
-from connection import c  # Sample library import
+from drones.connection import connector
 
 
-def setup_log():
+def setup_log() -> None:
     """Setup global log config."""
 
-    logging.basicConfig(
-        filename="logfile.log",
-        filemode="w",
-        level=logging.DEBUG,
-        format="[%(filename)s] [%(levelname)s] : %(message)s",
-    )
+    fh = logging.FileHandler("logfile.log")
+    fh.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("[%(filename)s] [%(levelname)s] : %(message)s")
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+
+    logging.basicConfig(level=logging.DEBUG, handlers=[fh, ch])
     logging.info("Log initialized")
 
 
 if __name__ == "__main__":
     setup_log()
-    c.connect()  # Sample entrypoint call
-    # c.__track_errors()    # Sample invalid call - function inaccessible
+    log = logging.getLogger()
+
+    while True:
+
+        command_to_send = input("Input command: ")
+
+        if command_to_send == "start":
+            connector.connect()
+        elif connector.tello_connected:
+            if command_to_send == "end":
+                connector.disconnect()
+            else:
+                connector.send_command(command_to_send)

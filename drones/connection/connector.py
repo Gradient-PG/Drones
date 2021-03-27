@@ -2,92 +2,148 @@
 
 Additional info.
 """
+
 import threading
 import socket
-import sys
-import time
 import logging
+import configparser
 
 log = logging.getLogger()
 
 
 class Connector:
+    """Tello connection manager
+
+    Attributes
+    ----------
+    address_response : (str, int)
+        tuple with IP and port of host for receiving command responses from Tello
+    address_state : (str, int)
+        tuple with IP and port of host for receiving state from Tello
+    stream_address : str
+        URL to Tello string
+    tello_address : (str, int)
+        tuple with IP and port of Tello for sending commands
+    socket_receive_response : socket
+        socket for receiving Tello responses
+    socket_receive_state : socket
+        socket for receiving Tello state
+    tello_connected : bool
+        connection flag
+    response_receiving_thread : Thread
+        thread handling receiving Tello responses
+    state_receiving_thread : Thread
+        thread handling receiving Tello state
+    state : str
+        last received Tello state
+    response : str
+        last received Tello response
+    last_command : str
+        last sent command
+
+    Methods
+    -------
+    connect()
+        Binds host sockets, creates data receiving Threads and starts them. Enables SKD on Tello.
+    disconnect()
+        Closes sockets.
+    receive_response()
+        Receive command response UDP datagrams from Tello, log socket error, close socket on exceptions.
+    receive_state()
+        Receive state UDP datagrams from Tello, log socket error, close socket on exceptions.
+    send_command(command: str)
+        Sends command to Tello
+    """
+
     def __init__(self):
-        self.address_response = ('', 9000)  # Tello sends command responses on port 9000
-        self.address_state = ('', 8890)  # Tello sends state on port 9000
-        self.stream_address = "udp://" + "0.0.0.0" + ':' + "11111"  # Stream link
-        self.tello_address = ('192.168.10.1', 8889)
-        self.socket_response = None  # Socket for response receiving and command sending
-        self.socket_state = None  # Socket for state receiving
-        self.tello_connected = False  # Connection flag
+        config = configparser.ConfigParser()
+        config.read("connection/config.ini")
+        config = config["NETWORK"]
+        self.address_response = (config["host"], config.getint("port_response"))
+        self.address_state = (config["host"], config.getint("port_state"))
+        self.stream_address = config["stream_address"]
+        self.tello_address = (config["tello_address"], config.getint("tello_port"))
+        self.state_byte_size = config.getint("state_byte_size")
+        self.response_byte_size = config.getint("response_byte_size")
+        self.socket_receive_response = None
+        self.socket_receive_state = None
+        self.tello_connected = False
         self.response_receiving_thread = None
         self.state_receiving_thread = None
         self.state = None
         self.response = None
+        self.last_command = None
 
-    def connect(self):
+    def connect(self) -> None:
         """Establish connection to Tello and enable SDK."""
 
-        self.socket_response = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket_response.bind(self.address_response)
-        self.socket_state = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket_state.bind(self.address_state)
-        self.tello_connected = True
-        self.response_receiving_thread = threading.Thread(target=self.receive_response)
-        self.response_receiving_thread.start()
-        self.state_receiving_thread = threading.Thread(target=self.receive_state)
-        self.state_receiving_thread.start()
-        self.send_command("command");
+        try:
+            self.socket_receive_response = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.socket_receive_response.bind(self.address_response)
+            self.socket_receive_state = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.socket_receive_state.bind(self.address_state)
+        except (OSError, socket.herror, socket.gaierror) as err:
+            log.error(f"Error {err.errno}: {err.strerror}")
+        else:
+            self.tello_connected = True
+            self.response_receiving_thread = threading.Thread(target=self.receive_response)
+            self.response_receiving_thread.start()
+            self.state_receiving_thread = threading.Thread(target=self.receive_state)
+            self.state_receiving_thread.start()
+            self.send_command("command")
+            log.info("Connection established.")
 
-        log.info("Connection established.")
+    def disconnect(self) -> None:
+        """Close sockets"""
 
-    def disconnect(self):
-        self.socket_response.close()
-        self.socket_state.close()
-        log.info("Connection closed.")
+        if self.tello_connected:
+            self.socket_receive_response.close()
+            self.socket_receive_state.close()
+            self.tello_connected = False
+            log.info("Connection closed.")
+        else:
+            log.info("Connection is closed already.")
 
-    def receive_response(self):
+    def receive_response(self) -> None:
         """Receive command response UDP datagrams from Tello, log socket error, close socket on exceptions."""
+
+        # TODO
+        # Await response with timeout
 
         while True:
             try:
-                data, server = self.socket_response.recvfrom(1518)
+                data, server = self.socket_receive_response.recvfrom(self.response_byte_size)
                 self.response = data.decode(encoding="utf-8")
                 log.info(self.response + "\n")
 
-            except socket.error as err:
+            except OSError as err:
                 log.error(err)
+                self.disconnect()
                 break
 
-        self.tello_connected = False
-
-    def receive_state(self):
+    def receive_state(self) -> None:
         """Receive state UDP datagrams from Tello, log socket error, close socket on exceptions."""
 
         while True:
             try:
-                data, server = self.socket_state.recvfrom(1024)
-                self.state = data.decode('ASCII')
+                data, server = self.socket_receive_state.recvfrom(self.state_byte_size)
+                self.state = data.decode("ASCII")
 
-            except socket.error as err:
+            except OSError as err:
                 log.error(err)
+                self.disconnect()
                 break
 
-        self.tello_connected = False
-
-    def receive_stream(self):
-        # TODO
-        return None
-
-    def send_command(self, command):
+    def send_command(self, command: str) -> None:
         """Send specified command to Tello, socket must be bound."""
 
         if self.tello_connected:
             if command:
-                command = command.encode(encoding="utf-8")
-                sent = self.socket_response.sendto(command, self.tello_address)
+                self.last_command = self.socket_receive_response.sendto(
+                    command.encode(encoding="utf-8"), self.tello_address
+                )
             else:
-                log.error("Command empty!")
+                log.warning("Command empty!")
         else:
             log.error("Tello not connected!")
 
