@@ -2,17 +2,23 @@ import numpy as np
 import cv2 as cv
 
 
+class IncorrectImageWrongChannelNumberException(Exception):
+    """Wrong image is provided"""
+
+    pass
+
+
 def min_max_norm(image: np.ndarray) -> np.ndarray:
     """Apply min max norm on given image. It should be used with OpenCv
 
     Parameters:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         image to be normalized
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         normalized version of input image
     """
     norm_image = np.zeros((image.shape[0], image.shape[1]))
@@ -24,12 +30,12 @@ def zero_one_norm(image: np.ndarray) -> np.ndarray:
 
     Parameters:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         image to be normalized
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         normalized version of input image
     """
     norm_image = np.zeros((image.shape[0], image.shape[1]))
@@ -41,32 +47,32 @@ def gray_norm(image: np.ndarray) -> np.ndarray:
 
     Parameters:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         image to be changed into gray
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         gray image
     """
     return cv.cvtColor(image, cv.COLOR_BGR2GRAY)
 
 
 def histogram_equalization_gray(image: np.ndarray) -> np.ndarray:
-    """Apply histogram normalization on single channel. If image have more channels, it will return input
+    """Apply histogram normalization on single channel
 
     Parameters:
     ----------
-    image : np.ndarray
-        image to be normalized(grayscale)
+    image: np.ndarray
+        grayscale image to be normalized
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         normalized version of input image
     """
     if len(image.shape) > 2:
-        return image
+        raise IncorrectImageWrongChannelNumberException("Incorrect image, it should be gray")
     return cv.equalizeHist(image)
 
 
@@ -75,14 +81,17 @@ def histogram_equalization_luminance(image: np.ndarray) -> np.ndarray:
 
     Parameters:
     ----------
-    image : np.ndarray
-        image to be normalized(3 channels)
+    image: np.ndarray
+        color image to be normalized
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         normalized version of input image
     """
+    if len(image.shape) != 3 or image.shape[2] != 3:
+        raise IncorrectImageWrongChannelNumberException("It should have 3 channels")
+
     # convert from RGB color-space to YCrCb
     ycrcb_img = cv.cvtColor(image, cv.COLOR_BGR2YCrCb)
 
@@ -98,14 +107,18 @@ def histogram_equalization_color(image: np.ndarray) -> np.ndarray:
 
     Parameters:
     ----------
-    image : np.ndarray
-        image to be normalized
+    image: np.ndarray
+        color image to be normalized
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         normalized version of input image
     """
+
+    if len(image.shape) != 3 or image.shape[2] != 3:
+        raise IncorrectImageWrongChannelNumberException("It should have 3 channels")
+
     # segregate color streams
     b, g, r = cv.split(image)
     h_b, bin_b = np.histogram(b.flatten(), 256, [0, 256])
@@ -143,12 +156,12 @@ def image_centralization(image: np.ndarray) -> np.ndarray:
 
     Parameters:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         image to be centered
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         centered version of input image
     """
     return (image - image.mean()) * 2
@@ -159,12 +172,12 @@ def clahe_gray_norm(image: np.ndarray) -> np.ndarray:
 
     Parameters:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         image to be normalized
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         normalized version of input image
     """
     clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -176,22 +189,18 @@ def clahe_color_norm(image: np.ndarray) -> np.ndarray:
 
     Parameters:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         image to be normalized
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         normalized version of input image
     """
     lab = cv.cvtColor(image, cv.COLOR_BGR2LAB)
-
     lab_planes = cv.split(lab)
-
     clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-
     lab_planes[0] = clahe.apply(lab_planes[0])
-
     lab = cv.merge(lab_planes)
 
     return cv.cvtColor(lab, cv.COLOR_LAB2BGR)
@@ -206,11 +215,11 @@ def normalization(
     centralization: bool = False,
     clahe: bool = False,
 ) -> np.ndarray:
-    """Apply chosen norms on given image. Default all norms are switch off
+    """Apply chosen norms on a given image. By default all norms are switch off
 
     Parameters:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         image to be normalized
     minmax: bool
         apply minmax norm on image
@@ -222,7 +231,7 @@ def normalization(
         equalize histogram of all channels of image, depending on which scale image is
     centralization: bool
         make image central
-    clahe:bool
+    clahe: bool
         apply clahe method on image
 
     Returns:
