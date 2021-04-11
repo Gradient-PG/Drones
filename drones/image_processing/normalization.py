@@ -9,7 +9,9 @@ class IncorrectImageWrongChannelNumberException(Exception):
 
 
 def min_max_norm(image: np.ndarray) -> np.ndarray:
-    """Apply min max norm on given image. It should be used with OpenCv
+    """Apply min max norm on given image. If you want to process your image with openCV, you should use this norm
+    instead of zero_one, due to being more useful. Reason of it is floating point inaccuracy, which might cause image
+    distortion
 
     Parameters:
     ----------
@@ -26,7 +28,9 @@ def min_max_norm(image: np.ndarray) -> np.ndarray:
 
 
 def zero_one_norm(image: np.ndarray) -> np.ndarray:
-    """Apply zero one pixel range. It should be used with AI
+    """Apply zero one pixel range. If you want to process your image later with neural network, you should use this norm
+    instead of zero_one, due to being more useful. Reason of it is learning performance and to obtain better results of
+    learning
 
     Parameters:
     ----------
@@ -152,7 +156,8 @@ def histogram_equalization_color(image: np.ndarray) -> np.ndarray:
 
 
 def image_centralization(image: np.ndarray) -> np.ndarray:
-    """Centralize image value. It should be used after apply zero_one norm
+    """Centralize image value. For better result of this function you should normalize it by min_max norm firstly.
+    If non-normalized image is provided, results may be unsatisfying.
 
     Parameters:
     ----------
@@ -221,7 +226,7 @@ def normalization(
     centralization: bool = False,
     clahe: bool = False,
 ) -> np.ndarray:
-    """Apply chosen norms on a given image. By default all norms are switch off
+    """Apply chosen norms on a given image. By default all norms are switched off
 
     Parameters:
     ----------
