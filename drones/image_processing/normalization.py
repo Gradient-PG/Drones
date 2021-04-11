@@ -74,6 +74,10 @@ def histogram_equalization_gray(image: np.ndarray) -> np.ndarray:
     ----------
     image: np.ndarray
         normalized version of input image
+
+    Raises:
+    ----------
+        IncorrectImageWrongChannelNumberException - when image don't have single channel in image
     """
     if len(image.shape) > 2:
         raise IncorrectImageWrongChannelNumberException("Incorrect image, it should be gray")
@@ -92,6 +96,10 @@ def histogram_equalization_luminance(image: np.ndarray) -> np.ndarray:
     ----------
     image: np.ndarray
         normalized version of input image
+
+    Raises:
+    ----------
+        IncorrectImageWrongChannelNumberException - when image don't have 3 channels in image
     """
     if len(image.shape) != 3 or image.shape[2] != 3:
         raise IncorrectImageWrongChannelNumberException("It should have 3 channels")
@@ -118,6 +126,10 @@ def histogram_equalization_color(image: np.ndarray) -> np.ndarray:
     ----------
     image: np.ndarray
         normalized version of input image
+
+    Raises:
+    ----------
+        IncorrectImageWrongChannelNumberException - when image don't have 3 channels in image
     """
 
     if len(image.shape) != 3 or image.shape[2] != 3:
@@ -184,6 +196,10 @@ def clahe_gray_norm(image: np.ndarray) -> np.ndarray:
     ----------
     image: np.ndarray
         normalized version of input image
+
+    Raises:
+    ----------
+        IncorrectImageWrongChannelNumberException - when image don't have single channel in image
     """
     if len(image.shape) > 2:
         raise IncorrectImageWrongChannelNumberException("Incorrect image, it should be gray")
@@ -204,6 +220,10 @@ def clahe_color_norm(image: np.ndarray) -> np.ndarray:
     ----------
     image: np.ndarray
         normalized version of input image
+
+    Raises:
+    ----------
+        IncorrectImageWrongChannelNumberException - when image don't have 3 channels in image
     """
     if len(image.shape) != 3 or image.shape[2] != 3:
         raise IncorrectImageWrongChannelNumberException("It should have 3 channels")
