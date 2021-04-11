@@ -180,6 +180,9 @@ def clahe_gray_norm(image: np.ndarray) -> np.ndarray:
     image: np.ndarray
         normalized version of input image
     """
+    if len(image.shape) > 2:
+        raise IncorrectImageWrongChannelNumberException("Incorrect image, it should be gray")
+
     clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     return clahe.apply(image)
 
@@ -197,6 +200,9 @@ def clahe_color_norm(image: np.ndarray) -> np.ndarray:
     image: np.ndarray
         normalized version of input image
     """
+    if len(image.shape) != 3 or image.shape[2] != 3:
+        raise IncorrectImageWrongChannelNumberException("It should have 3 channels")
+
     lab = cv.cvtColor(image, cv.COLOR_BGR2LAB)
     lab_planes = cv.split(lab)
     clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -236,7 +242,7 @@ def normalization(
 
     Returns:
     ----------
-    image : np.ndarray
+    image: np.ndarray
         normalized version of input image
     """
     function_dict = {
