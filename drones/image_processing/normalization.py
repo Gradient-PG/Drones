@@ -245,21 +245,21 @@ def normalization(
     image: np.ndarray
         normalized version of input image
     """
-    function_dict = {
+    norm_function_dict = {
         min_max_norm: minmax,
         zero_one_norm: zero_one,
         gray_norm: gray,
         image_centralization: centralization,
     }
     if gray:
-        function_dict[histogram_equalization_gray] = histogram_equalization
-        function_dict[clahe_gray_norm] = clahe
+        norm_function_dict[histogram_equalization_gray] = histogram_equalization
+        norm_function_dict[clahe_gray_norm] = clahe
     else:
-        function_dict[histogram_equalization_color] = histogram_equalization
-        function_dict[histogram_equalization_luminance] = histogram_equalization
-        function_dict[clahe_color_norm] = clahe
+        norm_function_dict[histogram_equalization_color] = histogram_equalization
+        norm_function_dict[histogram_equalization_luminance] = histogram_equalization
+        norm_function_dict[clahe_color_norm] = clahe
 
-    for function, execute in function_dict.items():
-        if execute:
-            image = function(image)
+    for norm_function, execute_norm in norm_function_dict.items():
+        if execute_norm:
+            image = norm_function(image)
     return image
