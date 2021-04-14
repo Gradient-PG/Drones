@@ -68,7 +68,6 @@ def choose_contour(contours_list: list) -> np.ndarray:
     """
 
     max_criteria = 0
-    selected_contour = None
 
     for contour in contours_list:
         # Calculate circularity and area of the contour.
