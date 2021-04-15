@@ -1,15 +1,11 @@
-"""Drone state bundle
-"""
+"""Drone state bundle."""
 
 from dataclasses import dataclass
 
 
-@dataclass(init=False, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+@dataclass(init=False)
 class DroneState:
-    """Drone state bundle
-
-    To create, state string is required.
-    """
+    """Drone state bundle."""
 
     pitch: int
     roll: int

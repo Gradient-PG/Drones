@@ -1,5 +1,4 @@
-"""Drone instructions definitions
-"""
+"""Drone instructions definitions."""
 
 
 def command() -> str:

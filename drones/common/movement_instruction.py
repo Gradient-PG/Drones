@@ -1,5 +1,4 @@
-"""Movement instruction bundle
-"""
+"""Movement instruction bundle."""
 
 from dataclasses import dataclass
 from typing import List
@@ -7,7 +6,7 @@ from typing import List
 import drone_instruction as di
 
 
-@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+@dataclass
 class MovementInstruction:
     """Movement instruction bundle
 

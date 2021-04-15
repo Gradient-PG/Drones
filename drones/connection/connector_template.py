@@ -1,7 +1,4 @@
-"""Tello drone connection and communication.
-
-Additional info.
-"""
+"""Tello drone connection and communication."""
 
 import logging
 import threading
@@ -14,55 +11,99 @@ log = logging.getLogger()
 
 
 class ConnectorTemplate:
-    """Tello drone connection manager
-    TODO:
-    """
-
-    _response_thread: threading.Thread
-    _sender_thread: threading.Thread
-    _last_instruction: MovementInstruction
-    _drone_instruction_stack: List[str]
-    _drone_finished_stack: List[str]
-    _drone_state: str
+    """Tello drone connection manager."""
 
     def __init__(self):
-        self._drone_instruction_stack = []
-        self._drone_finished_stack = []
+        self._response_thread: threading.Thread = None
+        self._sender_thread: threading.Thread = None
+        self._last_instruction: MovementInstruction = None
+        self._drone_instruction_stack: List[str] = []
+        self._drone_finished_stack: List[str] = []
+        self._drone_state: str = None
 
     def initialize(self) -> bool:
-        """Opens connection with the device and enables SDK. Starts communication thread."""
+        """Open connection with the device and enables SDK. Start communication thread.
+
+        Args:
+            None.
+
+        Returns:
+            True if connection was established properly. False otherwise.
+        """
 
         return True
 
     def send_instruction(self, instruction: MovementInstruction) -> bool:
-        """Receives MovementInstruction and executes it as soon as possible."""
+        """Receive MovementInstruction and execute it as soon as possible.
+
+        Args:
+            instruction: MovementInstruction which is sent to drone.
+
+        Returns:
+            True if instruction was received properly by the module (not by the drone!). False otherwise.
+        """
 
         return True
 
     def get_instruction(self) -> MovementInstruction:
-        """Returns last MovementInstruction sent to the Connector."""
+        """Return last MovementInstruction sent to the Connector.
+
+        Args:
+            None.
+
+        Returns:
+            Last acquired movement instruction.
+        """
 
         return self._last_instruction
 
     def get_state(self) -> DroneState:
-        """Returns last DroneState."""
+        """Return last DroneState.
+
+        Args:
+            None.
+
+        Returns:
+            Last collected drone state bundle.
+        """
 
         return DroneState(self._drone_state)
 
     def if_idle(self) -> bool:
-        """Returns true if drone is idle and doesn't have any instructions queued."""
+        """Checks if there are any tasks queued for the module.
 
-        return True if not self._drone_instruction_stack else False
+        Args:
+            None.
+
+        Returns:
+             True if module is idle. False otherwise.
+        """
+
+        return not self._drone_instruction_stack
 
     def close(self) -> None:
-        """Closes the connection with the drone, performing the landing operation if required."""
+        """Close the connection with the drone, performing the landing operation if required.
 
-        return
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+
+        pass
 
     def halt(self) -> None:
-        """Interrupts currently performed task and attempts to stop the drone quickly as it is possible."""
+        """Interrupt currently performed task and attempt to stop the drone quickly as it is possible.
 
-        return
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+
+        pass
 
 
 connector = ConnectorTemplate()
