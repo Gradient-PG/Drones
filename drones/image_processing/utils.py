@@ -1,46 +1,44 @@
-def calculate_focal(knownWidth: float, knownDistance: float, pixelWidth: int) -> float:
-    """
-    Calculate focal length of the camera
-    focalLength = (pixelWidth * knownDistance) / knownWidth
+def calculate_focal(known_width: float, known_distance: float, pixel_width: int) -> float:
+    """Calculate focal length of the camera
+    focal_length = (pixel_width * known_distance) / known_width
 
     Parameters:
     ----------
-    knownWidth: float
+    known_width: float
         measured width of the object (has to be known before running script)
-    knownDistance: float
+    known_distance: float
         measured distance between detected object and camera (has to be known before running script)
-    pixelWidth: int
+    pixel_width: int
         width in pixels of detected object
 
     Returns:
     ----------
-    focalLength: float
+    focal_length: float
         calculated length of the focal
 
     Raises:
     ----------
-        ZeroDivisionError: when nominator (knownWidth) is equal 0
+        ZeroDivisionError: when nominator (known_width) is equal 0
     """
     try:
-        focalLength = (pixelWidth * knownDistance) / knownWidth
+        focal_length = (pixel_width * known_distance) / known_width
     except ZeroDivisionError as err:
         raise ZeroDivisionError(err)
 
-    return focalLength
+    return focal_length
 
 
-def distance_to_camera(knownWidth: float, focalLength: float, pixelWidth: int) -> float:
-    """
-    Calculate distance between detected object and camera from equation
-    distance = (knownWidth * focalLength) / pixelWidth
+def distance_to_camera(known_width: float, focal_length: float, pixel_width: int) -> float:
+    """Calculate distance between detected object and camera from equation
+    distance = (known_width * focal_length) / pixel_width
 
     Parameters:
     ----------
-    knownWidth: float
+    known_width: float
         measured width of the object (has to be known before running script)
-    focalLength: float
+    focal_length: float
         length of the focal
-    pixelWidth: int
+    pixel_width: int
         width in pixels of detected object
 
     Returns:
@@ -50,29 +48,28 @@ def distance_to_camera(knownWidth: float, focalLength: float, pixelWidth: int) -
 
     Raises:
     ----------
-        ZeroDivisionError: when nominator (pixelWidth) is equal 0
+        ZeroDivisionError: when nominator (pixel_width) is equal 0
     """
     try:
-        distance = (knownWidth * focalLength) / pixelWidth
+        distance = (known_width * focal_length) / pixel_width
     except ZeroDivisionError as err:
         raise ZeroDivisionError(err)
 
     return distance
 
 
-def vector_to_centre(frameWidth: int, frameHeight: int, objectCoordinates: tuple, centreHeightCoeff: float) -> tuple:
-    """
-    Calculate vector from tracked object to center of frame
+def vector_to_centre(frame_width: int, frame_height: int, obj_coordinates: tuple, centre_height_coeff: float) -> tuple:
+    """Calculate vector from tracked object to center of frame
 
     Parameters:
     ----------
-    frameWidth: int
+    frame_width: int
         width of frame captured from camera
-    frameHeight: int
+    frame_height: int
         height of frame captured from camera
-    objectCoordinates: tuple
+    obj_coordinates: tuple
         coordinates (x, y) of tracked object's center
-    centreHeightCoeff: float
+    centre_height_coeff: float
         coefficient defining height of center where tracked object should be
 
     Returns:
@@ -81,11 +78,11 @@ def vector_to_centre(frameWidth: int, frameHeight: int, objectCoordinates: tuple
         vector (x, y) from tracked object to center of frame
     """
 
-    xCentre = 0.5 * frameWidth
-    yCentre = centreHeightCoeff * frameHeight
+    x_centre = 0.5 * frame_width
+    y_centre = centre_height_coeff * frame_height
 
-    xComponent = xCentre - objectCoordinates[0]
-    yComponent = yCentre - objectCoordinates[1]
-    vectorToCentre = (xComponent, yComponent)
+    x_component = x_centre - obj_coordinates[0]
+    y_component = y_centre - obj_coordinates[1]
+    vector_to_centre = (x_component, y_component)
 
-    return vectorToCentre
+    return vector_to_centre
