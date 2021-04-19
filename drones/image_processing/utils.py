@@ -47,7 +47,9 @@ def distance_to_camera(known_width: float, focal_length: float, pixel_width: int
     return distance
 
 
-def vector_to_centre(frame_width: int, frame_height: int, obj_coordinates: Tuple, centre_height_coeff: float) -> Tuple:
+def vector_to_centre(
+    frame_width: int, frame_height: int, obj_coordinates: Tuple[int, int], centre_height_coeff: float
+) -> Tuple[int, int]:
     """Calculate vector from tracked object to center of frame
 
     Parameters:
@@ -67,8 +69,8 @@ def vector_to_centre(frame_width: int, frame_height: int, obj_coordinates: Tuple
         vector (x, y) from tracked object to center of frame
     """
 
-    x_centre = 0.5 * frame_width
-    y_centre = centre_height_coeff * frame_height
+    x_centre = int(0.5 * frame_width)
+    y_centre = int(centre_height_coeff * frame_height)
 
     x_component = x_centre - obj_coordinates[0]
     y_component = y_centre - obj_coordinates[1]
