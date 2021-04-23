@@ -41,10 +41,12 @@ def detect_object(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int], int
     hsv_image = cv.cvtColor(image, cv.COLOR_BGR2HSV)
 
     # Mask in given color range.
+    # The config stores everything as string,
+    # so color bounds are splited, become array and they are converted to int.
     mask = cv.inRange(
         hsv_image,
-        np.array([config.getint("LOWER_HUE"), config.getint("LOWER_SATURATION"), config.getint("LOWER_VALUE")]),
-        np.array([config.getint("UPPER_HUE"), config.getint("UPPER_SATURATION"), config.getint("UPPER_VALUE")]),
+        np.asarray(config["LOWER_BOUND"].split(" "), dtype=np.int),
+        np.asarray(config["UPPER_BOUND"].split(" "), dtype=np.int),
     )
 
     # Remove tiny contours on the mask to make it more clear.
