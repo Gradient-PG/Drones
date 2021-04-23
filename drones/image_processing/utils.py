@@ -45,8 +45,8 @@ def detect_object(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int], int
     # so color bounds are splited, become array and they are converted to int.
     mask = cv.inRange(
         hsv_image,
-        np.asarray(config["LOWER_BOUND"].split(" "), dtype=np.int),
-        np.asarray(config["UPPER_BOUND"].split(" "), dtype=np.int),
+        np.asarray(config["LOWER_BOUND"].split(" "), dtype=np.int32),
+        np.asarray(config["UPPER_BOUND"].split(" "), dtype=np.int32),
     )
 
     # Remove tiny contours on the mask to make it more clear.
