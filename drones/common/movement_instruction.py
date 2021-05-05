@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import List
 
-import drone_instruction as di
+from . import drone_instruction as di
 
 
 @dataclass
