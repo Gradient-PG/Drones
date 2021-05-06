@@ -7,6 +7,7 @@ import logging
 from connection import c  # Sample library import
 import drones.image_processing as image_processing
 import cv2 as cv
+from drones.decision_making import decision_controller
 
 
 def setup_log():
