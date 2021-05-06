@@ -83,6 +83,7 @@ def vector_to_centre(
 
     return vector_centre
 
+
 config_parser = configparser.ConfigParser()
 config_parser.read("drones/image_processing/config.ini")
 config = config_parser["COLOR_RANGE"]
