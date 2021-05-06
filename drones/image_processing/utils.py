@@ -8,7 +8,7 @@ import drones.image_processing.normalization as normalization
 
 def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
     """
-    Detect object, counter it distance from camera,pitch and yaw
+    Detect object, count its distance from camera, pitch and yaw
     Parameters:
     ----------
     image: np.ndarray
@@ -17,8 +17,8 @@ def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
     Returns:
     ----------
         direction and distance: typing.Tuple[float,float,float]
-        first two values are direction to object(yaw and pitch). They are countered from image position. Distance is
-        countered from real width of object and focal length of camera.
+        first two values are direction to object (yaw and pitch). They are counted from image position. Distance is
+        counted from real width of object and focal length of camera.
     """
     config_parser = configparser.ConfigParser()
     config_parser.read("image_processing/config.ini")
@@ -27,12 +27,16 @@ def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
     focal = int(config["FOCAL"])
     real_width = float(config["WIDTH"])
     ((x, y), width) = detect_object(image)
+    image_width = image.shape[1]
+    image_height = image.shape[0]
+
+    # if object is not detected x will be < 0
     if x > 0:
         distance = distance_to_camera(real_width, focal, width)
-        vector = vector_to_centre(image.shape[1], image.shape[0], (x, y), 0.5)
+        vector = vector_to_centre(image_width, image_height, (x, y), 0.5)
         return (
-            -(vector[0] / image.shape[1] * float(config["FOV"])),
-            vector[1] / image.shape[0] * float(config["FOV"]),
+            -(vector[0] / image_width * float(config["FIELD_OF_VIEW"])),
+            vector[1] / image_height * float(config["FIELD_OF_VIEW"]),
             distance,
         )
     else:
