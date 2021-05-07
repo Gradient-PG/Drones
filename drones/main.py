@@ -4,7 +4,11 @@ It's where the API entrypoints are accessed and used for the purpose of the proj
 """
 
 import logging
-from drones.connection import connector
+import threading
+import time
+
+from drones.connection.connector_template import connector
+from common import movement_instruction as mi
 
 
 def setup_log() -> None:
@@ -22,18 +26,30 @@ def setup_log() -> None:
     logging.info("Log initialized")
 
 
+i = 1
+
+
+def mock():
+    while True:
+        global i
+        connector.send_instruction(mi.MovementInstruction(i, 1, 1, 1, 1))
+        i = i + 2
+        time.sleep(0.1)
+
+
 if __name__ == "__main__":
     setup_log()
     log = logging.getLogger()
+
+    thr = threading.Thread(target=mock)
 
     while True:
 
         command_to_send = input("Input command: ")
 
         if command_to_send == "start":
-            connector.connect()
-        elif connector.tello_connected:
-            if command_to_send == "end":
-                connector.disconnect()
-            else:
-                connector.send_command(command_to_send)
+            connector.initialize()
+        elif command_to_send == "end":
+            connector.close()
+        else:
+            thr.start()

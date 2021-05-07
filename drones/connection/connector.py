@@ -107,9 +107,6 @@ class Connector:
     def receive_response(self) -> None:
         """Receive command response UDP datagrams from Tello, log socket error, close socket on exceptions."""
 
-        # TODO
-        # Await response with timeout
-
         while True:
             try:
                 data, server = self.socket_receive_response.recvfrom(self.response_byte_size)

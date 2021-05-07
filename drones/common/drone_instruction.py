@@ -2,7 +2,7 @@
 
 
 def command() -> str:
-    return "Command"
+    return "command"
 
 
 def takeoff() -> str:

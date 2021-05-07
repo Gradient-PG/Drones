@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import List
+from typing import Tuple
 
 from . import drone_instruction as di
 
@@ -19,7 +20,7 @@ class MovementInstruction:
     diff_z: int
     speed: int
 
-    def translate(self) -> List[str]:
+    def translate(self) -> List[Tuple[str, int]]:
         """Translate movement instruction to list of drone instructions"""
 
-        return [di.command(), di.takeoff(), di.land()]
+        return [(di.command(), self.target_yaw + 1), (di.command(), self.target_yaw)]

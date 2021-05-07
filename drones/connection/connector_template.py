@@ -1,13 +1,17 @@
 """Tello drone connection and communication."""
 
 import logging
+import time
+import datetime
 import threading
 from typing import List
+from typing import Tuple
 import configparser
 import socket
 
-from .. common.movement_instruction import MovementInstruction
-from .. common.drone_state import DroneState
+from ..common.movement_instruction import MovementInstruction
+from ..common import drone_instruction as di
+from ..common.drone_state import DroneState
 
 log = logging.getLogger()
 
@@ -32,10 +36,14 @@ class ConnectorTemplate:
         self._state_thread: threading.Thread = None
         self._sender_thread: threading.Thread = None
         self._last_instruction: MovementInstruction = None
-        self._drone_instruction_stack: List[str] = []
+        self._drone_instruction_stack: List[Tuple[str, int]] = []
         self._drone_finished_stack: List[str] = []
         self._drone_state: str = None
-        self._drone_response = None
+        self._response_event = threading.Event()
+        self._response_event.clear()
+        self._new_instruction_event = threading.Event()
+        self._drone_response: str = None
+        self._drone_response_time = None
 
     def initialize(self) -> bool:
         """Open connection with the device and enables SDK. Start communication thread.
@@ -54,39 +62,66 @@ class ConnectorTemplate:
         except (OSError, socket.herror, socket.gaierror) as err:
             log.error(f"Error {err.errno}: {err.strerror}")
         else:
-            self._tello_connected = True
-            self._response_thread = threading.Thread(target=self.get_response)
+            self._response_thread = threading.Thread(target=self._receive_response)
             self._response_thread.start()
-            self._state_thread = threading.Thread(target=self.get_state)
-            self._state_thread.start()
-            # self.send_instruction()
-            log.info("Connection established")
+            self._drone_instruction_stack.append((di.command(), 1))
+            self._send_command()
+            if self._response_event.wait(timeout=3) and self._drone_response == "ok":
+                self._tello_connected = True
+                self._state_thread = threading.Thread(target=self._receive_state)
+                self._state_thread.start()
+                self._sender_thread = threading.Thread(target=self._send_commands)
+                self._sender_thread.start()
+                self._drone_instruction_stack.append((di.command(), 2))
+                log.info("Connection established")
+            else:
+                log.info("Connecting failed")
 
         return True
 
-    def get_response(self):
+    def _receive_response(self) -> None:
+        """Receive command response UDP datagrams from Tello, log socket error, close socket on exceptions."""
+
         while True:
             try:
                 data, server = self._socket_receive_response.recvfrom(self._response_byte_size)
                 self._drone_response = data.decode(encoding="utf-8")
-                log.info(f"Drone: {self._drone_response}")
+                self._response_event.set()
+                log.info(self._drone_response + "\n")
 
             except OSError as err:
                 log.error(err)
                 self.close()
                 break
 
-    def send_instruction(self, instruction: MovementInstruction) -> bool:
+    def _receive_state(self) -> None:
+        """Receive state UDP datagrams from Tello, log socket error, close socket on exceptions."""
+
+        while True:
+            try:
+                data, server = self._socket_receive_state.recvfrom(self._state_byte_size)
+                self._state = data.decode("ASCII")
+
+            except OSError as err:
+                log.error(err)
+                self.close()
+                break
+
+    def send_instruction(self, instruction: MovementInstruction) -> None:
         """Receive MovementInstruction and execute it as soon as possible.
 
         Args:
             instruction: MovementInstruction which is sent to drone.
+            new_instruction_event: Event for notifying _send_command() about instruction stack change
 
         Returns:
             True if instruction was received properly by the module (not by the drone!). False otherwise.
         """
-
-        return True
+        self._last_instruction = instruction
+        instruction_set = instruction.translate()
+        self._drone_instruction_stack.clear()
+        self._drone_instruction_stack.extend(instruction_set)
+        self._new_instruction_event.set()
 
     def get_instruction(self) -> MovementInstruction:
         """Return last MovementInstruction sent to the Connector.
@@ -110,7 +145,7 @@ class ConnectorTemplate:
             Last collected drone state bundle.
         """
 
-        return DroneState(self._drone_state)
+        return DroneState(self._state)
 
     def if_idle(self) -> bool:
         """Checks if there are any tasks queued for the module.
@@ -138,7 +173,7 @@ class ConnectorTemplate:
             self._socket_receive_response.close()
             self._socket_receive_state.close()
             self._tello_connected = False
-            # landing here
+            # halt and land
             log.info("Connection closed.")
         else:
             log.info("Connection is already closed")
@@ -155,4 +190,30 @@ class ConnectorTemplate:
 
         pass
 
+    def _send_commands(self):
+        while True:
+            if self._tello_connected:
+                if self._drone_instruction_stack:
+                    self._send_command()
+            else:
+                log.error("Send command failed, Tello not connected!")
+                break
 
+    def _send_command(self) -> None:
+        """Send one command from stack to Tello, socket must be bound."""
+        # TODO "OK" to config, check if Tello responds OK AFTER instruction is done
+        # TODO Add errors handling, check if Tello responds to command while doing other command
+        self._response_event.clear()
+        self._new_instruction_event.clear()
+        command = self._drone_instruction_stack[-1]
+        log.debug("Sending " + str(command[1]))
+        self._last_command = self._socket_receive_response.sendto(
+            command[0].encode(encoding="utf-8"), self._tello_address
+        )
+
+        if self._response_event.wait(timeout=4) and self._drone_response == "ok":
+            if not self._new_instruction_event.isSet():
+                self._drone_instruction_stack.pop()
+
+
+connector = ConnectorTemplate()
