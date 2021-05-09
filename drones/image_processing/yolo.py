@@ -69,14 +69,14 @@ def detect(
         model(torch.zeros(1, 3, img_size, img_size).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
     result = []
-    img = torch.from_numpy(img).to(device)
-    img = img.float()  # uint8 to fp16/32
-    img /= 255.0  # 0 - 255 to 0.0 - 1.0
-    if img.ndimension() == 3:
-        img = img.unsqueeze(0)
+    image = torch.from_numpy(img).to(device)
+    image = image.float()  # uint8 to fp16/32
+    image /= 255.0  # 0 - 255 to 0.0 - 1.0
+    if image.ndimension() == 3:
+        image = image.unsqueeze(0)
 
     # Inference
-    pred = model(img)[0]
+    pred = model(image)[0]
 
     # Apply NMS
     pred = non_max_suppression(pred, conf_tres, iou_thres, classes=classes)
@@ -86,7 +86,7 @@ def detect(
         gn = torch.tensor(img0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
         if len(det):
             # Rescale boxes from img_size to im0 size
-            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], img0.shape).round()
+            det[:, :4] = scale_coords(image.shape[2:], det[:, :4], img0.shape).round()
 
             # Write results
             for *xyxy, conf, cls in reversed(det):
