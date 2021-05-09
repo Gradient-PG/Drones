@@ -4,6 +4,8 @@ import imutils
 import configparser
 import typing
 import drones.image_processing.normalization as normalization
+import drones.image_processing.yolo as yolo
+import os
 
 
 def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
@@ -26,7 +28,7 @@ def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
 
     focal = int(config["FOCAL"])
     real_width = float(config["WIDTH"])
-    ((x, y), width) = detect_object(image)
+    ((x, y), width) = yolo.detect_object_yolo(image)
     image_width = image.shape[1]
     image_height = image.shape[0]
 
