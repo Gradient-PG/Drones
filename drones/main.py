@@ -25,5 +25,3 @@ if __name__ == "__main__":
     setup_log()
     c.connect()  # Sample entrypoint call
     # c.__track_errors()    # Sample invalid call - function inaccessible
-    image = cv.imread("butelka.png")
-    print(image_processing.utils.process_image(image))

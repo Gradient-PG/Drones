@@ -8,11 +8,47 @@ from yolov5.models.experimental import attempt_load
 from yolov5.utils.datasets import letterbox
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords, xyxy2xywh
 from yolov5.utils.torch_utils import select_device
+import logging
 
 
-def detect(weights, img0, conf_tres=0.25, img_size=640, device="cpu", classes=None, iou_thres=0.45):
+def detect(
+    weights: str,
+    img0: np.ndarray,
+    conf_tres: float = 0.25,
+    img_size: int = 640,
+    device_type: str = "cpu",
+    classes: list = None,
+    iou_thres: float = 0.45,
+) -> list:
+    """Detect object on image using provided weights. Objects are detected by YOLO neural network
+
+    Parameters:
+    ----------
+        weights: str
+            path to weights we want to use.
+        img0: np.ndarray
+            image on which objects detection will be proceeded
+        conf_tres: float. Default is 0.25
+            This parameter represent confidence level in which object should be detected.
+        img_size:
+            Size on which image should be rescaled. Larger image will provide better output, but it will take
+            significant longer to proceed. Doubling img size will result 4 times longer processing time
+        device_type: str. Default is cpu, Possible options are cuda devices i.e. 0 or 0, 1, 2, 3 or cpu
+            Represents type of device on which we will proceed with predictions
+        classes: Tuple of Ints. Default is None
+            Classes we are interested to have results. Giving none means we want to have all classes
+        iou_thres: float. Default is 0.45
+            IOU threshold for NMS. It is responsible for bounding boxes and their size.
+
+    Returns:
+    ----------
+        It returns list of all detected objects on photo. Every element consist 5 values. First one is recognized class
+        name. Others are central position of object(x,y) and size of object(width, height).
+        All values are normalized in yolo norm.
+        To have position and size on original photo you have to multiply this results by original photo size.
+    """
     # Load model
-    model = attempt_load(weights, map_location=device)  # load FP32 model
+    model = attempt_load(weights, map_location=device_type)  # load FP32 model
     stride = int(model.stride.max())  # model stride
     img_size = check_img_size(img_size, s=stride)  # check img_size
     img = img0.copy()
@@ -26,7 +62,7 @@ def detect(weights, img0, conf_tres=0.25, img_size=640, device="cpu", classes=No
     # Get names and colors
     names = model.module.names if hasattr(model, "module") else model.names
 
-    device = select_device(device)
+    device = select_device(device_type)
 
     # Run inference
     if device.type != "cpu":
@@ -58,19 +94,56 @@ def detect(weights, img0, conf_tres=0.25, img_size=640, device="cpu", classes=No
                 line = (names[int(cls)], *xywh)  # label format
                 result.append(line)
 
-    print(f"Done. ({time.time() - t0:.3f}s)")
+    logging.getLogger(__name__).info(f"Processed image, processing time: ({time.time() - t0:.3f}s)")
     return result
 
 
 def detect_object_yolo(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int], int]:
+    """Function will detect objects on given image and return position and width of object, which class is chosen in
+    config file. Many parameters of detection such as weights, thresholds and others can be set inside config file
+
+    Parameters:
+    ----------
+        img0: np.ndarray
+            image on which objects detection will be proceeded
+
+    Returns:
+    ----------
+        center_and_diameter: typing.Tuple[typing.Tuple[int,int],int]
+            The inside tuple is x and y coordinates on the picture of center point of detected object.
+            The other value is width in pixels of detected object.
+            If the object is not detected tuple ((-1,-1),-1) is returned (so center coordinates and diameter are -1).
+    """
     config_parser = configparser.ConfigParser()
     config_parser.read("image_processing/config.ini")
     config = config_parser["YOLO"]
 
-    results = detect(config["NETWORK_PATH"], image)
+    # Parse classes from config
+    config_classes = config["CLASSES"]
+    if config_classes != "None":
+        det_classes = config_classes.split(" ")
+        classes = []
+        for det_class in det_classes:
+            classes.append(int(det_class))
+    else:
+        classes = None  # type: ignore
 
+    # Using yolo detect object on photo
+    results = detect(
+        config["NETWORK_PATH"],
+        image,
+        conf_tres=float(config["CONFIDENCE_THRESHOLD"]),
+        img_size=int(config["IMG_SIZE"]),
+        device_type=config["DEVICE"],
+        classes=classes,
+        iou_thres=float(config["IOU_THRESHOLD"]),
+    )
+
+    # Gain image width and height
     image_width = image.shape[1]
     image_height = image.shape[0]
+
+    # Find proper class on photo. Should be only one represent of this class
     for line in results:
         classification, x_pos, y_pos, width, height = line
         if classification == config["CLASS"]:
@@ -79,4 +152,5 @@ def detect_object_yolo(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int]
             width = int(width * image_width)
 
             return (x_pos, y_pos), width
+
     return (-1, -1), -1
