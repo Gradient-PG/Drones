@@ -8,7 +8,7 @@ import drones.image_processing.yolo as yolo
 import os
 
 
-def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
+def process_image(image: np.ndarray) -> list:
     """
     Detect object, count its distance from camera, pitch and yaw
     Parameters:
@@ -18,9 +18,9 @@ def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
 
     Returns:
     ----------
-        direction and distance: typing.Tuple[float,float,float]
+        list of directions and distances of all objects: list and typing.Tuple[float,float,float] inside
         first two values are direction to object (yaw and pitch). They are counted from image position. Distance is
-        counted from real width of object and focal length of camera.
+        counted from real width of object and focal length of camera. In case of no object detection list will be empty
     """
     config_parser = configparser.ConfigParser()
     config_parser.read("image_processing/config.ini")
@@ -28,21 +28,25 @@ def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
 
     focal = int(config["FOCAL"])
     real_width = float(config["WIDTH"])
-    ((x, y), width) = yolo.detect_object_yolo(image)
+    detection_list = yolo.detect_object_yolo(image)
     image_width = image.shape[1]
     image_height = image.shape[0]
+    result_list = []
 
-    # if object is not detected x will be < 0
-    if x > 0:
-        distance = distance_to_camera(real_width, focal, width)
-        vector = vector_to_centre(image_width, image_height, (x, y), 0.5)
-        return (
-            -(vector[0] / image_width * float(config["FIELD_OF_VIEW"])),
-            vector[1] / image_height * float(config["FIELD_OF_VIEW"]),
-            distance,
-        )
-    else:
-        return -1, -1, -1
+    if len(detection_list) > 0:
+        for detection in detection_list:
+            x, y, width = detection
+            distance = distance_to_camera(real_width, focal, width)
+            vector = vector_to_centre(image_width, image_height, (x, y), 0.5)
+            result_list.append(
+                (
+                    -(vector[0] / image_width * float(config["FIELD_OF_VIEW"])),
+                    vector[1] / image_height * float(config["FIELD_OF_VIEW"]),
+                    distance,
+                )
+            )
+
+    return result_list
 
 
 def calculate_focal(known_width: float, known_distance: float, pixel_width: int) -> float:

@@ -98,9 +98,10 @@ def detect(
     return result
 
 
-def detect_object_yolo(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int], int]:
+def detect_object_yolo(image: np.ndarray) -> list:
     """Function will detect objects on given image and return position and width of object, which class is chosen in
-    config file. Many parameters of detection such as weights, thresholds and others can be set inside config file
+    config file. Many parameters of detection such as weights, thresholds and others can be set inside config file. In
+    case of many objects detected, all of them will be returned.
 
     Parameters:
     ----------
@@ -109,10 +110,10 @@ def detect_object_yolo(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int]
 
     Returns:
     ----------
-        center_and_diameter: typing.Tuple[typing.Tuple[int,int],int]
-            The inside tuple is x and y coordinates on the picture of center point of detected object.
-            The other value is width in pixels of detected object.
-            If the object is not detected tuple ((-1,-1),-1) is returned (so center coordinates and diameter are -1).
+        center_and_diameter: list of tuples(int, int, int)
+            Every found instance of object defined in config file has it's own tuple. Every tuple have 3 values, which
+            represent object center coordinates(x,y) and width
+            If the object is not detected list will be empty.
     """
     config_parser = configparser.ConfigParser()
     config_parser.read("image_processing/config.ini")
@@ -143,6 +144,7 @@ def detect_object_yolo(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int]
     image_width = image.shape[1]
     image_height = image.shape[0]
 
+    result_list = []
     # Find proper class on photo. Should be only one represent of this class
     for line in results:
         classification, x_pos, y_pos, width, height = line
@@ -151,6 +153,6 @@ def detect_object_yolo(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int]
             y_pos = int(y_pos * image_height)
             width = int(width * image_width)
 
-            return (x_pos, y_pos), width
+            result_list.append((x_pos, y_pos, width))
 
-    return (-1, -1), -1
+    return result_list
