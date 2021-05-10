@@ -25,3 +25,4 @@ if __name__ == "__main__":
     setup_log()
     c.connect()  # Sample entrypoint call
     # c.__track_errors()    # Sample invalid call - function inaccessible
+    img_processor = image_processing.ImageProcessing()
