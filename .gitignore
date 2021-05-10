@@ -130,4 +130,9 @@ dmypy.json
 .idea/
 
 # Photos
-.jpg
+*.jpg
+*.png
+
+# default yolo models
+/drones/models/yolov5m.pt
+/drones/models/yolov5l.pt
