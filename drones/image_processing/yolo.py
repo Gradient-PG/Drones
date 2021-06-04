@@ -13,12 +13,13 @@ import logging
 
 class YoloDetection:
     def __init__(self):
-        # initialize config
+        self.log = logging.getLogger(__name__)
+        # Initialize config.
         self.config_parser = configparser.ConfigParser()
         self.config_parser.read("image_processing/config.ini")
         self.config = self.config_parser["YOLO"]
 
-        # Parse classes from config
+        # Parse classes from config.
         config_classes = self.config["CLASSES"]
         if config_classes != "None":
             det_classes = config_classes.split(" ")
@@ -35,8 +36,8 @@ class YoloDetection:
         self.img_size = int(self.config["IMG_SIZE"])
         self.iou_thres = float(self.config["IOU_THRESHOLD"])
 
-    def detect(self, img0: np.ndarray) -> list:
-        """Detect object on image using provided weights. Objects are detected by YOLO neural network
+    def detect(self, img0: np.ndarray) -> typing.List:
+        """Detect object on image using provided weights. Objects are detected by YOLO neural network.
 
         Parameters:
         ----------
@@ -44,9 +45,9 @@ class YoloDetection:
                 image on which objects detection will be proceeded
         Returns:
         ----------
-            It returns list of all detected objects on photo. Every element consist 5 values. First one is recognized
-            class name. Others are central position of object(x,y) and size of object(width, height).
-            All values are normalized in yolo norm.
+            It returns typing.List of all detected objects from the image. Every element consist of 5 values. First one
+            is recognized class name. Others are central position of object (x,y) and size of object (width, height).
+            All values are normalized in yolo norm (all values are within 0 to 1 range)
             To have position and size on original photo you have to multiply this results by original photo size.
         """
         # Load model
@@ -86,24 +87,28 @@ class YoloDetection:
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
-            gn = torch.tensor(img0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+            gn = torch.tensor(img0.shape)[[1, 0, 1, 0]]  # gain width height width height of org image
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(image.shape[2:], det[:, :4], img0.shape).round()
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
-                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                    # normalized x, y pos and width height
+                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
                     line = (names[int(cls)], *xywh)  # label format
                     result.append(line)
+                    self.log.info(
+                        f"found class {line[0]} in position {line[1]}, {line[2]} of size {line[3]}, {line[4]}"
+                    )
 
-        logging.getLogger(__name__).info(f"Processed image, processing time: ({time.time() - t0:.3f}s)")
+        self.log.info(f"Processed image, processing time: ({time.time() - t0:.3f}s)")
         return result
 
-    def detect_object_yolo(self, image: np.ndarray) -> list:
-        """Function will detect objects on given image and return position and width of object, which class is chosen
-        in config file. Many parameters of detection such as weights, thresholds and others can be set inside config
-        file. In case of many objects detected, all of them will be returned.
+    def detect_object_yolo(self, image: np.ndarray) -> typing.List:
+        """Function will detect objects on given image and return position and width of objects.
+        Class to be detected is specified in config file. Many parameters of detection such as weights, thresholds and
+        others can be set inside config file. In case of many objects detected, all of them will be returned.
 
         Parameters:
         ----------
@@ -117,7 +122,6 @@ class YoloDetection:
                 which represent object center coordinates(x,y) and width.
                 If the object is not detected list will be empty.
         """
-
         # Using yolo detect object on photo
         results = self.detect(image)
 
@@ -125,9 +129,8 @@ class YoloDetection:
         image_height = image.shape[0]
 
         result_list = []
-        # Find proper class on photo. Should be only one represent of this class
-        for line in results:
-            classification, x_pos, y_pos, width, height = line
+        # Find proper class on photo.
+        for classification, x_pos, y_pos, width, height in results:
             if classification == self.config["CLASS"]:
                 x_pos = int(x_pos * image_width)
                 y_pos = int(y_pos * image_height)

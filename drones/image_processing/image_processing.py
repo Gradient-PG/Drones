@@ -9,12 +9,22 @@ from drones.image_processing.utils import distance_to_camera, vector_to_centre
 
 
 class ImageProcessing:
+    """
+    This class is main class of image processing. It has only one field, which load and store all yolo data such as
+    model and other stuff to increase performance. It has one main method, to process_image. All other method in this
+    class are used by this method.
+    """
+
     def __init__(self):
+        """
+        Creates instance of YOLO object, to perform detection using yolo. All parameters can be specified in config
+        file.
+        """
         self.yolo = YoloDetection()
 
-    def process_image(self, image: np.ndarray) -> list:
+    def process_image(self, image: np.ndarray) -> typing.List:
         """
-        Detect object, count its distance from camera, pitch and yaw
+        Detect object, count its distance from camera, pitch and yaw.
         Parameters:
         ----------
         image: np.ndarray
@@ -22,10 +32,10 @@ class ImageProcessing:
 
         Returns:
         ----------
-            list of directions and distances of all objects: list and typing.Tuple[float,float,float] inside
-            first two values are direction to object (yaw and pitch). They are counted from image position. Distance is
-            counted from real width of object and focal length of camera. In case of no object detection list will be
-            empty
+            List of directions and distances of all objects: typing.List is made of typing.Tuple[float,float,float].
+            First two values are directions to the object (yaw and pitch). They are counted from image position.
+            Distance is counted from real width of the object and focal length of camera. In case of no object
+            detection list will be empty.
         """
         config_parser = configparser.ConfigParser()
         config_parser.read("image_processing/config.ini")
@@ -38,14 +48,13 @@ class ImageProcessing:
         image_height = image.shape[0]
         result_list = []
 
-        if len(detection_list) > 0:
-            for detection in detection_list:
-                x, y, width = detection
+        if detection_list:
+            for x, y, width in detection_list:
                 distance = distance_to_camera(real_width, focal, width)
                 vector = vector_to_centre(image_width, image_height, (x, y), 0.5)
                 result_list.append(
                     (
-                        -(vector[0] / image_width * float(config["FIELD_OF_VIEW"])),
+                        -vector[0] / image_width * float(config["FIELD_OF_VIEW"]),
                         vector[1] / image_height * float(config["FIELD_OF_VIEW"]),
                         distance,
                     )

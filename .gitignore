@@ -133,6 +133,6 @@ dmypy.json
 *.jpg
 *.png
 
-# default yolo models
+# YOLO model directory
 /drones/models/yolov5m.pt
 /drones/models/yolov5l.pt
