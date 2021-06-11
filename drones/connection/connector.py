@@ -279,7 +279,7 @@ class Connector:
         )
 
         if "rc" not in command:
-            if self._response_event.wait(timeout=5):
+            if self._response_event.wait(timeout=10):
                 if self._drone_response == "ok":
                     log.debug("Drone received: " + str(command))
                     if not self._new_instruction_event.isSet():
@@ -291,6 +291,7 @@ class Connector:
                 log.debug("Drone has not received: " + str(command))
         else:
             log.debug("RC command sent")
+            self._drone_instruction_stack.pop()
             # log.debug(f"Preexec state: {self._state}")
             # log.debug(f"Postexec state: {self._state}")
 

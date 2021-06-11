@@ -27,17 +27,15 @@ class MovementInstruction:
 
         sequence: List[str] = []
 
-        # if self.takeoff:
-        #    sequence.append(di.takeoff())
+        if self.takeoff:
+            sequence.append(di.takeoff())
 
         # if self.target_yaw > 0:
         #     sequence.append(di.cw(self.target_yaw))
         # elif self.target_yaw < 0:
         #     sequence.append(di.cw(-self.target_yaw))
 
-        # sequence.append(di.rc(0, 0, 0, 100))
-        # sequence.append(di.rc(0, 0, 0, -100))
-        # sequence.append(di.rc(0, 0, 0, 0))
+        sequence.append(di.rc(self.diff_rl, self.diff_fwd, self.diff_y, self.target_yaw))
 
         # if self.diff_fwd > 0:
         #     sequence.append(di.forward(self.diff_fwd))
@@ -54,8 +52,8 @@ class MovementInstruction:
         # elif self.diff_y < 0:
         #     sequence.append(di.down(-self.diff_y))
 
-        # if self.land:
-        #    sequence.append(di.land())
+        if self.land:
+            sequence.append(di.land())
 
         sequence.reverse()
 
