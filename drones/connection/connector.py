@@ -9,7 +9,7 @@ from typing import Tuple
 import configparser
 import socket
 import cv2
-
+import numpy as np
 from ..common.movement_instruction import MovementInstruction
 from ..common import drone_instruction as di
 from ..common.drone_state import DroneState
@@ -67,8 +67,8 @@ class Connector:
         config = config["NETWORK"]
         self._address_response = (config["host"], config.getint("port_response"))
         self._address_state = (config["host"], config.getint("port_state"))
-        self._stream_address = config["stream_address"]
         self._tello_address = (config["tello_address"], config.getint("tello_port"))
+        self._stream_address = config["stream_address"]
         self._state_byte_size = config.getint("state_byte_size")
         self._response_byte_size = config.getint("response_byte_size")
         self._socket_receive_response = None
@@ -88,6 +88,7 @@ class Connector:
         self._drone_response: str = None
         self._drone_response_time = None
 
+        self.frame = None
         self.should_stop: bool = False
 
     def initialize(self) -> bool:
@@ -112,14 +113,19 @@ class Connector:
             self._response_thread.start()
             self._drone_instruction_stack.append(di.command())
             self._send_command()
+            self._drone_instruction_stack.append(di.streamon())
+            self._send_command()
             log.debug("Waiting for drone's response on initialize")
             if self._response_event.wait(timeout=3) and self._drone_response == "ok":
                 self._tello_connected = True
                 self._state_thread = threading.Thread(target=self._receive_state)
+                self._state_thread.setDaemon(True)
                 self._state_thread.start()
                 self._sender_thread = threading.Thread(target=self._send_commands)
+                self._sender_thread.setDaemon(True)
                 self._sender_thread.start()
                 self._stream_thread = threading.Thread(target=self._receive_frames)
+                self._stream_thread.setDaemon(True)
                 self._stream_thread.start()
                 log.info("Connection established")
                 return False
@@ -158,16 +164,19 @@ class Connector:
                 break
 
     def _receive_frames(self) -> None:
+        """Recieve stream from tello drone using OpenCv video capture. Last frame is stored in self.frame"""
+        telloVideo = cv2.VideoCapture(self._stream_address)
+        telloVideo.set(cv2.CAP_PROP_FPS, 3)
         while True:
-            self._receive_frame()
-
-    def _receive_frame(self) -> None:
-        self._cap = cv2.VideoCapture(self._stream_address)
-        if not self._cap.isOpened():
-            self._cap.open(self._stream_address)
-        _, frame = self._cap.read()
-        if frame:
-            cv2.imwrite("frame", frame)
+            # Capture frame-by-framestreamon
+            ret, frame = telloVideo.read()
+            # if frame is read correctly ret is True
+            if not ret:
+                log.error("Can't receive frame")
+                continue
+            # Our operations on the frame come here # <- resize for improved performance
+            # Display the resulting frame
+            self.frame = frame
 
     def send_instruction(self, instruction: MovementInstruction) -> None:
         """Receive MovementInstruction and execute it as soon as possible.
@@ -254,6 +263,7 @@ class Connector:
         self._drone_instruction_stack.append(di.land())
 
     def _send_commands(self):
+        """Send commands to drone using command stack"""
         while True:
             if self.should_stop:
                 return

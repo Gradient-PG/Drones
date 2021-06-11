@@ -20,8 +20,6 @@ class MovementInstruction:
     diff_rl: int
     diff_y: int
 
-    # speed: int
-
     def translate(self) -> List[str]:
         """Translate movement instruction to list of drone instructions"""
 
@@ -30,27 +28,7 @@ class MovementInstruction:
         if self.takeoff:
             sequence.append(di.takeoff())
 
-        # if self.target_yaw > 0:
-        #     sequence.append(di.cw(self.target_yaw))
-        # elif self.target_yaw < 0:
-        #     sequence.append(di.cw(-self.target_yaw))
-
         sequence.append(di.rc(self.diff_rl, self.diff_fwd, self.diff_y, self.target_yaw))
-
-        # if self.diff_fwd > 0:
-        #     sequence.append(di.forward(self.diff_fwd))
-        # elif self.diff_fwd < 0:
-        #     sequence.append(di.back(-self.diff_fwd))
-        #
-        # if self.diff_rl > 0:
-        #     sequence.append(di.right(self.diff_rl))
-        # elif self.diff_rl < 0:
-        #     sequence.append(di.left(-self.diff_rl))
-        #
-        # if self.diff_y > 0:
-        #     sequence.append(di.up(self.diff_y))
-        # elif self.diff_y < 0:
-        #     sequence.append(di.down(-self.diff_y))
 
         if self.land:
             sequence.append(di.land())
@@ -58,4 +36,3 @@ class MovementInstruction:
         sequence.reverse()
 
         return sequence
-        # return [(di.command(), self.target_yaw + 1), (di.command(), self.target_yaw)]
