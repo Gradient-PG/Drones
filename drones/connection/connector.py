@@ -174,8 +174,7 @@ class Connector:
             if not ret:
                 log.error("Can't receive frame")
                 continue
-            # Our operations on the frame come here # <- resize for improved performance
-            # Display the resulting frame
+
             self.frame = frame
 
     def send_instruction(self, instruction: MovementInstruction) -> None:
