@@ -9,6 +9,7 @@ from yolov5.utils.datasets import letterbox
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords, xyxy2xywh
 from yolov5.utils.torch_utils import select_device
 import logging
+from typing import List, Tuple
 
 
 class YoloDetection:
@@ -27,7 +28,7 @@ class YoloDetection:
             for det_class in det_classes:
                 self.classes.append(int(det_class))
         else:
-            self.classes = None  # type: ignore
+            self.classes = None
 
         self.device_type = self.config["DEVICE"]
         self.model = attempt_load(self.config["NETWORK_PATH"], map_location=self.device_type)  # load FP32 model
@@ -36,7 +37,7 @@ class YoloDetection:
         self.img_size = int(self.config["IMG_SIZE"])
         self.iou_thres = float(self.config["IOU_THRESHOLD"])
 
-    def detect(self, img0: np.ndarray) -> typing.List:
+    def detect(self, img0: np.ndarray) -> List[Tuple[str, float, float, float, float]]:
         """Detect object on image using provided weights. Objects are detected by YOLO neural network.
 
         Parameters:
@@ -95,8 +96,10 @@ class YoloDetection:
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     # normalized x, y pos and width height
-                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
-                    line = (names[int(cls)], *xywh)  # label format
+                    xywh: Tuple[float, float, float, float] = (
+                        (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
+                    )
+                    line: Tuple[str, float, float, float, float] = (str(names[int(cls)]), *xywh)  # label format
                     result.append(line)
                     self.log.info(
                         f"found class {line[0]} in position {line[1]}, {line[2]} of size {line[3]}, {line[4]}"
@@ -105,7 +108,7 @@ class YoloDetection:
         self.log.info(f"Processed image, processing time: ({time.time() - t0:.3f}s)")
         return result
 
-    def detect_object_yolo(self, image: np.ndarray) -> typing.List:
+    def detect_object_yolo(self, image: np.ndarray) -> List[Tuple[int, int, int]]:
         """Function will detect objects on given image and return position and width of objects.
         Class to be detected is specified in config file. Many parameters of detection such as weights, thresholds and
         others can be set inside config file. In case of many objects detected, all of them will be returned.

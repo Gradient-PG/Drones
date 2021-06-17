@@ -6,6 +6,7 @@ import typing
 import drones.image_processing.normalization as normalization
 from drones.image_processing.yolo import YoloDetection
 from drones.image_processing.utils import distance_to_camera, vector_to_centre
+from typing import List, Tuple
 
 
 class ImageProcessing:
@@ -22,7 +23,7 @@ class ImageProcessing:
         """
         self.yolo = YoloDetection()
 
-    def process_image(self, image: np.ndarray) -> typing.List:
+    def process_image(self, image: np.ndarray) -> List[Tuple[float, float, float]]:
         """
         Detect object, count its distance from camera, pitch and yaw.
         Parameters:
