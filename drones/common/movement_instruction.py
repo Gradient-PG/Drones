@@ -1,9 +1,9 @@
 """Movement instruction bundle."""
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 
-import drone_instruction as di
+from . import drone_instruction as di
 
 
 @dataclass
@@ -13,13 +13,26 @@ class MovementInstruction:
     To translate bundle into drone's instructions, use instruction.translate()
     """
 
+    takeoff: bool
+    land: bool
     target_yaw: int
-    diff_x: int
+    diff_fwd: int
+    diff_rl: int
     diff_y: int
-    diff_z: int
-    speed: int
 
     def translate(self) -> List[str]:
         """Translate movement instruction to list of drone instructions"""
 
-        return [di.command(), di.takeoff(), di.land()]
+        sequence: List[str] = []
+
+        if self.takeoff:
+            sequence.append(di.takeoff())
+
+        sequence.append(di.rc(self.diff_rl, self.diff_fwd, self.diff_y, self.target_yaw))
+
+        if self.land:
+            sequence.append(di.land())
+
+        sequence.reverse()
+
+        return sequence
