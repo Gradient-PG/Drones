@@ -2,8 +2,5 @@
 
 Additional info.
 """
-
-# Import prototype and share it as global object
-from drones.connection.prototype import ConnectorPrototype
-
-c = ConnectorPrototype()
+# Import connector
+from drones.connection.connector import connector
