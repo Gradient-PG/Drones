@@ -118,7 +118,7 @@ class YoloDetection:
         Returns:
         ----------
             center_and_diameter: list of tuples(int, int, int)
-                Every found instance of object defined in config file has it's own tuple. Every tuple have 3 values,
+                Every found instance of object defined in config file has it's own tuple. Every tuple has 3 values,
                 which represent object center coordinates(x,y) and width.
                 If the object is not detected list will be empty.
         """
