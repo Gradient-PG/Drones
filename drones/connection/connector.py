@@ -71,6 +71,8 @@ class Connector:
         self._stream_address = config["stream_address"]
         self._state_byte_size = config.getint("state_byte_size")
         self._response_byte_size = config.getint("response_byte_size")
+        self._init_timeout = config.getint("init_timeout")
+        self._response_timeout = config.getint("response_timeout")
         self._socket_receive_response = None
         self._socket_receive_state = None
         self._tello_connected = False
@@ -102,13 +104,16 @@ class Connector:
         """
 
         try:
+            # Initialize and bind sockets for receiving drone's responses and state
             self._socket_receive_response = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self._socket_receive_response.bind(self._address_response)
             self._socket_receive_state = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self._socket_receive_state.bind(self._address_state)
         except (OSError, socket.herror, socket.gaierror) as err:
             log.error(f"Error {err.errno}: {err.strerror}")
+        # If no exceptions thrown
         else:
+            # Initialize response receiving thread and send SDK initialization command
             self._response_thread = threading.Thread(target=self._receive_response)
             self._response_thread.start()
             self._drone_instruction_stack.append(di.command())
@@ -116,7 +121,9 @@ class Connector:
             self._drone_instruction_stack.append(di.streamon())
             self._send_command()
             log.debug("Waiting for drone's response on initialize")
-            if self._response_event.wait(timeout=3) and self._drone_response == "ok":
+            # If drone responds "ok" within specified timeout
+            if self._response_event.wait(timeout=self._init_timeout) and self._drone_response == "ok":
+                # Set connection flag and initialize threads for receiving state and stream and for sending commands
                 self._tello_connected = True
                 self._state_thread = threading.Thread(target=self._receive_state)
                 self._state_thread.setDaemon(True)
@@ -243,7 +250,6 @@ class Connector:
             self._socket_receive_response.close()
             self._socket_receive_state.close()
             self._tello_connected = False
-            # halt and land
             log.info("Connection closed.")
         else:
             log.info("Connection is already closed")
@@ -262,7 +268,14 @@ class Connector:
         self._drone_instruction_stack.append(di.land())
 
     def _send_commands(self):
-        """Send commands to drone using command stack"""
+        """Send consecutive instructions from stack to drone until halted or disconnected.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         while True:
             if self.should_stop:
                 return
@@ -276,7 +289,6 @@ class Connector:
 
     def _send_command(self) -> None:
         """Send one command from stack to Tello, socket must be bound."""
-        # TODO "OK" to config, add timeout to config
         # TODO Add errors handling, check if Tello responds to command while doing other command
         self._response_event.clear()
         self._new_instruction_event.clear()
@@ -288,7 +300,7 @@ class Connector:
         )
 
         if "rc" not in command:
-            if self._response_event.wait(timeout=10):
+            if self._response_event.wait(timeout=self._response_timeout):
                 if self._drone_response == "ok":
                     log.debug("Drone received: " + str(command))
                     if not self._new_instruction_event.isSet():
@@ -300,9 +312,6 @@ class Connector:
                 log.debug("Drone has not received: " + str(command))
         else:
             log.debug("RC command sent")
-            self._drone_instruction_stack.pop()
-            # log.debug(f"Preexec state: {self._state}")
-            # log.debug(f"Postexec state: {self._state}")
 
 
 connector = Connector()
