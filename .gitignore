@@ -128,3 +128,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea/
+
+# Photos
+*.jpg
+*.png
+
+# YOLO model directory
+/drones/models/yolov5m.pt
+/drones/models/yolov5l.pt

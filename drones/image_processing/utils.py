@@ -6,43 +6,6 @@ import typing
 import drones.image_processing.normalization as normalization
 
 
-def process_image(image: np.ndarray) -> typing.Tuple[float, float, float]:
-    """
-    Detect object, count its distance from camera, pitch and yaw
-    Parameters:
-    ----------
-    image: np.ndarray
-        image to be processed
-
-    Returns:
-    ----------
-        direction and distance: typing.Tuple[float,float,float]
-        first two values are direction to object (yaw and pitch). They are counted from image position. Distance is
-        counted from real width of object and focal length of camera.
-    """
-    config_parser = configparser.ConfigParser()
-    config_parser.read("image_processing/config.ini")
-    config = config_parser["OBJECT"]
-
-    focal = int(config["FOCAL"])
-    real_width = float(config["WIDTH"])
-    ((x, y), width) = detect_object(image)
-    image_width = image.shape[1]
-    image_height = image.shape[0]
-
-    # if object is not detected x will be < 0
-    if x > 0:
-        distance = distance_to_camera(real_width, focal, width)
-        vector = vector_to_centre(image_width, image_height, (x, y), 0.5)
-        return (
-            -(vector[0] / image_width * float(config["FIELD_OF_VIEW"])),
-            vector[1] / image_height * float(config["FIELD_OF_VIEW"]),
-            distance,
-        )
-    else:
-        return -1, -1, -1
-
-
 def calculate_focal(known_width: float, known_distance: float, pixel_width: int) -> float:
     """Calculate focal length of the camera
     focal_length = (pixel_width * known_distance) / known_width
