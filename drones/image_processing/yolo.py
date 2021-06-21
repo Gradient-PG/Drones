@@ -4,17 +4,18 @@ import configparser
 import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
-from yolov5.models.experimental import attempt_load
 from yolov5.utils.datasets import letterbox
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords, xyxy2xywh
 from yolov5.utils.torch_utils import select_device
 import logging
 from typing import List, Tuple
+from drones.common.logger import setup_logger
 
 
 class YoloDetection:
     def __init__(self):
-        self.log = logging.getLogger(__name__)
+        self.log = setup_logger("yolo_logger", "yolo.log", logging.DEBUG)
+        self.log.info("initialized")
         # Initialize config.
         self.config_parser = configparser.ConfigParser()
         self.config_parser.read("image_processing/config.ini")
@@ -31,7 +32,7 @@ class YoloDetection:
             self.classes = None
 
         self.device_type = self.config["DEVICE"]
-        self.model = attempt_load(self.config["NETWORK_PATH"], map_location=self.device_type)  # load FP32 model
+        self.model = torch.hub.load(self.config["NETWORK_PATH"], self.config["NETWORK"])
         self.stride = int(self.model.stride.max())  # model stride
         self.conf_tres = float(self.config["CONFIDENCE_THRESHOLD"])
         self.img_size = int(self.config["IMG_SIZE"])

@@ -22,6 +22,12 @@ class ImageProcessing:
         file.
         """
         self.yolo = YoloDetection()
+        self.config_parser = configparser.ConfigParser()
+        self.config_parser.read("image_processing/config.ini")
+        self.config = self.config_parser["OBJECT"]
+
+        self.focal = int(self.config["FOCAL"])
+        self.real_width = float(self.config["WIDTH"])
 
     def process_image(self, image: np.ndarray) -> List[Tuple[float, float, float]]:
         """
@@ -38,12 +44,7 @@ class ImageProcessing:
             Distance is counted from real width of the object and focal length of camera. In case of no object
             detection list will be empty.
         """
-        config_parser = configparser.ConfigParser()
-        config_parser.read("image_processing/config.ini")
-        config = config_parser["OBJECT"]
 
-        focal = int(config["FOCAL"])
-        real_width = float(config["WIDTH"])
         detection_list = self.yolo.detect_object_yolo(image)
         image_width = image.shape[1]
         image_height = image.shape[0]
@@ -51,12 +52,12 @@ class ImageProcessing:
 
         if detection_list:
             for x, y, width in detection_list:
-                distance = distance_to_camera(real_width, focal, width)
+                distance = distance_to_camera(self.real_width, self.focal, width)
                 vector = vector_to_centre(image_width, image_height, (x, y), 0.5)
                 result_list.append(
                     (
-                        -vector[0] / image_width * float(config["FIELD_OF_VIEW"]),
-                        vector[1] / image_height * float(config["FIELD_OF_VIEW"]),
+                        -vector[0] / image_width * float(self.config["FIELD_OF_VIEW"]),
+                        vector[1] / image_height * float(self.config["FIELD_OF_VIEW"]),
                         distance,
                     )
                 )
