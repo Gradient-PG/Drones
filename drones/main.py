@@ -14,7 +14,7 @@ import multiprocessing
 import drones.image_processing as image_processing
 from drones.common.processClass import ProcessClass
 from drones.common.logger import setup_logger
-import msvcrt
+from drones.common.KBHit import KBHit
 
 
 def process_communicator(connector: Connector) -> None:
@@ -24,10 +24,11 @@ def process_communicator(connector: Connector) -> None:
     connector: Connector
         Connector to drone, which is currently used.
     """
+    kbhit = KBHit()
     while True:
-        if msvcrt.kbhit():
-            command_to_send = msvcrt.getch()
-            if command_to_send == b"s":
+        if kbhit.kbhit():
+            command_to_send = kbhit.getch()
+            if command_to_send == "s":
                 connector.initialize()
                 time.sleep(10)
                 connector.send_instruction(mi.MovementInstruction(True, False, 0, 0, 0, 0))
@@ -35,9 +36,9 @@ def process_communicator(connector: Connector) -> None:
                 connector.send_instruction(mi.MovementInstruction(False, False, 50, 0, 0, 0))
                 time.sleep(10)
                 connector.send_instruction(mi.MovementInstruction(False, False, 0, 0, 0, 0))
-            elif command_to_send == b"h":
+            elif command_to_send == "h":
                 connector.halt()
-            elif command_to_send == b"c":
+            elif command_to_send == "c":
                 connector.close()
 
 
