@@ -2,7 +2,7 @@ import os
 
 # Windows
 if os.name == "nt":
-    import msvcrt
+    import msvcrt  # type: ignore
 
 # Posix (Linux, OS X)
 else:
