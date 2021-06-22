@@ -2,7 +2,7 @@ import os
 
 # Windows
 if os.name == "nt":
-    import msvcrt  # type: ignore
+    import msvcrt
 
 # Posix (Linux, OS X)
 else:
@@ -59,7 +59,7 @@ class KBHit:
         Should not be called in the same program as getarrow().
         """
         if os.name == "nt":
-            return msvcrt.getch().decode("utf-8")
+            return msvcrt.getch().decode("utf-8")  # type: ignore
         else:
             return sys.stdin.read(1)
 
@@ -72,8 +72,8 @@ class KBHit:
         Should not be called in the same program as getch().
         """
         if os.name == "nt":
-            msvcrt.getch()  # skip 0xE0
-            c = msvcrt.getch()
+            msvcrt.getch()  # type: ignore
+            c = msvcrt.getch()  # type: ignore
             vals = [72, 77, 80, 75]
         else:
             c = sys.stdin.read(3)[2]  # type: ignore
@@ -84,7 +84,7 @@ class KBHit:
     def kbhit(self) -> bool:
         """Returns True if keyboard character was hit, False otherwise."""
         if os.name == "nt":
-            return msvcrt.kbhit()
+            return msvcrt.kbhit()  # type: ignore
         else:
             dr, dw, de = select([sys.stdin], [], [], 0)
             return dr != []
