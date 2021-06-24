@@ -176,11 +176,12 @@ class Connector:
 
     def _receive_frames(self) -> None:
         """Recieve stream from tello drone using OpenCv video capture. Last frame is stored in self.frame"""
-        telloVideo = cv2.VideoCapture(self._stream_address)
-        telloVideo.set(cv2.CAP_PROP_FPS, 3)
+
+        tello_video = cv2.VideoCapture(self._stream_address)
+        tello_video.set(cv2.CAP_PROP_FPS, 3)
         while True:
             # Capture frame-by-framestreamon
-            ret, frame = telloVideo.read()
+            ret, frame = tello_video.read()
             # if frame is read correctly ret is True
             if not ret:
                 log.error("Can't receive frame")
@@ -188,7 +189,7 @@ class Connector:
 
             self.frame = frame
 
-    def send_instruction(self, instruction: MovementInstruction) -> None:
+    def send_instruction(self, instruction: MovementInstruction) -> bool:
         """Receive MovementInstruction and execute it as soon as possible.
 
         Args:
@@ -197,9 +198,12 @@ class Connector:
         Returns:
             True if instruction was received properly by the module (not by the drone!). False otherwise.
         """
-        self._last_instruction = instruction
-        # instruction_set = instruction.translate()
-        # TODO
+
+        if not self._should_stop:
+            self._last_instruction = instruction
+            self._current_rc = instruction.translate()
+            return True
+        return False
 
     def get_instruction(self) -> MovementInstruction:
         """Return last MovementInstruction sent to the Connector.
@@ -282,73 +286,60 @@ class Connector:
             None.
         """
 
-        # TODO add sending RC 0, 0, 0, 0 before landing and taking off, add delay
-
         while True:
             if self._tello_connected:
 
                 self._send_rc()
 
-                if self._send_land:
-                    # Send land command until drone responses "ok"
-                    while not self._send_command(di.land()):
-                        pass
+                # If land command should be sent
+                if self._send_land and self._send_command(di.land()):
                     # If sending land is successful set landed flag
                     self._landed = True
                     self._send_land = False
 
-                if self._send_takeoff:
-                    # Send takeoff command until drone responses "ok"
-                    while not self._send_command(di.takeoff()):
-                        pass
-                    # If sending takeoff is successful reset landed flag
-                    self._landed = False
-                    self._send_takeoff = False
+                # If drone is not halting
+                if not self._should_stop:
+                    # If takeoff command should be sent
+                    if self._send_takeoff and self._send_command(di.takeoff()):
+                        # If sending takeoff is successful reset landed flag
+                        self._landed = False
+                        self._send_takeoff = False
 
-                if self._send_stream_on:
-                    # Send streamon command until drone responses "ok"
-                    while not self._send_command(di.streamon()):
-                        pass
-                    # If sending streamon is successful set stream_on flag
-                    self._stream_on = True
-                    self._send_stream_on = False
+                    # If streamon command should be sent
+                    if self._send_stream_on and self._send_command(di.streamon()):
+                        # If sending streamon is successful set stream_on flag
+                        self._stream_on = True
+                        self._send_stream_on = False
 
-                if self._send_stream_off:
-                    # Send streamon command until drone responses "ok"
-                    while not self._send_command(di.streamoff()):
-                        pass
-                    # If sending streamoff is successful reset stream_on flag
-                    self._stream_on = False
-                    self._send_stream_off = False
+                    # If streamoff command should be sent
+                    if self._send_stream_off and self._send_command(di.streamoff()):
+                        # If sending streamoff is successful reset stream_on flag
+                        self._stream_on = False
+                        self._send_stream_off = False
 
             else:
-                log.error("Sending thread stopping, Tello not connected!")
+                log.info("Sending thread stopping, Tello not connected!")
                 break
 
-    def _takeoff(self) -> None:
+    def takeoff(self) -> None:
         """Instruct drone to takeoff"""
         if not self._should_stop:
             self._send_takeoff = True
 
-    def _land(self) -> None:
+    def land(self) -> None:
         """Instruct drone to land"""
         if not self._should_stop:
             self._send_land = True
 
-    def _stream_on(self) -> None:
+    def stream_on(self) -> None:
         """Instruct drone to turn on stream"""
         if not self._should_stop:
             self._send_stream_on = True
 
-    def _stream_off(self) -> None:
+    def stream_off(self) -> None:
         """Instruct drone to turn off stream"""
         if not self._should_stop:
             self._send_stream_off = True
-
-    def _set_rc(self, new_rc: str) -> None:
-        """Set new RC value"""
-        if not self._should_stop:
-            self._current_rc = new_rc
 
     def _send_command(self, command: str) -> bool:
         """Send command to tello, socket must be bound."""

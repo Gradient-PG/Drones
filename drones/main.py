@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
         if command_to_send == "start":
             connector.initialize()
-            # connector.send_instruction(mi.MovementInstruction(True, True, 90, 100, -50, -20))
+            # connector.send_instruction(mi.MovementInstruction(0, 0 , 0, 0))
         elif command_to_send == "end":
             connector.close()
         elif command_to_send == "s":
