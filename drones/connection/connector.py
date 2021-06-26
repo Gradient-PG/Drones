@@ -1,6 +1,6 @@
 """Tello drone connection and communication."""
 
-import self.logging
+import logging
 import time
 import datetime
 import threading
@@ -176,14 +176,16 @@ class Connector:
         """Recieve stream from tello drone using OpenCv video capture. Last frame is stored in self.frame"""
 
         tello_video = cv2.VideoCapture(self._stream_address)
-        tello_video.set(cv2.CAP_PROP_FPS, 3)
+        tello_video.set(cv2.CAP_PROP_BUFFERSIZE, 2)
         while True:
             # Capture frame-by-framestreamon
             ret, frame = tello_video.read()
+            cv2.imshow("stream", frame)
+            cv2.waitKey(1)
             # if frame is read correctly ret is True
             if not ret:
                 self.log.error("Can't receive frame")
-                continue
+                break
 
             self._frame = frame
 
@@ -358,7 +360,6 @@ class Connector:
                 return True
             elif "error" in self._drone_response:
                 self.log.debug("Unknown error, halting")
-                self.halt()
         else:
             self.log.debug("Drone has not responded within timeout: " + str(command))
 

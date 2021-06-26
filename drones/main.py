@@ -25,17 +25,15 @@ def process_communicator(connector: Connector) -> None:
         Connector to drone, which is currently used.
     """
     kbhit = KBHit()
+    flag = 0
     while True:
         if kbhit.kbhit():
             command_to_send = kbhit.getch()
-            if command_to_send == "s":
+            if command_to_send == "s" and flag == 0:
+                flag = 1
                 connector.initialize()
-                time.sleep(10)
-                connector.send_instruction(mi.MovementInstruction(True, False, 0, 0, 0, 0))
-                time.sleep(10)
-                connector.send_instruction(mi.MovementInstruction(False, False, 50, 0, 0, 0))
-                time.sleep(10)
-                connector.send_instruction(mi.MovementInstruction(False, False, 0, 0, 0, 0))
+                connector.takeoff()
+                connector.stream_on()
             elif command_to_send == "h":
                 connector.halt()
             elif command_to_send == "c":
@@ -46,18 +44,36 @@ if __name__ == "__main__":
     connector = Connector()
     frame_queue: multiprocessing.Queue = multiprocessing.Queue()
     result_queue: multiprocessing.Queue = multiprocessing.Queue()
-    image_processing_process = ProcessClass(frame_queue, result_queue)
+    image_processing_process = ProcessClass(frame_queue, result_queue, True)
     image_processing_process.start()
 
     communication_thread = threading.Thread(target=process_communicator, args=(connector,), daemon=True)
     communication_thread.start()
-
+    it = 0
     while True:
         frame = connector.get_last_frame()
         if frame is not None:
             frame_queue.put(frame)
-        time.sleep(0.6)
+            break
+    while True:
         if not result_queue.empty():
-            while not result_queue.empty():
-                result = result_queue.get()
-                # TODO make decision
+            frame = connector.get_last_frame()
+            if frame is not None:
+                frame_queue.put(frame)
+            result = result_queue.get()
+            width, height, distance = 0, 0, 0
+            it = it + 1
+            connector.log.info(str(result) + str(it))
+            if len(result) > 0:
+                result_width, result_height, result_distance = result[0]
+                if result_width > 15:
+                    width = 20
+                elif result_width < -15:
+                    width = -20
+                # if result_height > 15:
+                #     height = -20
+                # elif result_height < -15:
+                #     height = 20
+                # if result_distance > 200:
+                #     distance = 20
+            connector.send_instruction(mi.MovementInstruction(0, distance, height, width))
