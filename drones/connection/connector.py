@@ -62,7 +62,7 @@ class Connector:
     """
 
     def __init__(self):
-        self._should_stop = True
+        self._should_stop = False
         config = configparser.ConfigParser()
         config.read("connection/config.ini")
         config = config["NETWORK"]
@@ -290,6 +290,7 @@ class Connector:
             if self._tello_connected:
 
                 self._send_rc()
+                time.sleep(0.5)
 
                 # If land command should be sent
                 if self._send_land and self._send_command(di.land()):

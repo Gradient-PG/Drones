@@ -13,12 +13,12 @@ class MovementInstruction:
     To translate bundle into drone's instructions, use instruction.translate()
     """
 
-    rcA: int
-    rcB: int
-    rcC: int
-    rcD: int
+    left_right: int
+    forward: int
+    height: int
+    yaw: int
 
     def translate(self) -> str:
         """Translate movement instruction to list of drone instructions"""
 
-        return di.rc(self.rcA, self.rcB, self.rcC, self.rcD)
+        return di.rc(self.left_right, self.forward, self.height, self.yaw)
