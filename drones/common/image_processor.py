@@ -7,7 +7,7 @@ from drones.common.logger import setup_logger
 import logging
 
 
-class ProcessClass(multiprocessing.Process):
+class ImageProcessor(multiprocessing.Process):
     """Class to store all data needed to sync data between processes"""
 
     def __init__(self, frame_queue, result_queue, dump=False):
@@ -22,8 +22,11 @@ class ProcessClass(multiprocessing.Process):
         i = 0
         next_frame = None
         while True:
-            while not self.frame_queue.empty():
-                next_frame = self.frame_queue.get()
+            try:
+                while True:
+                    next_frame = self.frame_queue.get(False)
+            except Exception:
+                pass
             if next_frame is not None:
                 if self.dump:
                     cv.imwrite(f"frame{i}.png", next_frame)

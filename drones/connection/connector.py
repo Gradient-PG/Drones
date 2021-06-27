@@ -53,9 +53,9 @@ class Connector:
     disconnect()
         Closes sockets.
     receive_response()
-        Receive command response UDP datagrams from Tello, self.log socket error, close socket on exceptions.
+        Receive command response UDP datagrams from Tello, log socket error, close socket on exceptions.
     receive_state()
-        Receive state UDP datagrams from Tello, self.log socket error, close socket on exceptions.
+        Receive state UDP datagrams from Tello, log socket error, close socket on exceptions.
     send_command(command: str)
         Sends command to Tello
     """
@@ -69,7 +69,7 @@ class Connector:
         self._address_response = (config["host"], config.getint("port_response"))
         self._address_state = (config["host"], config.getint("port_state"))
         self._tello_address = (config["tello_address"], config.getint("tello_port"))
-        self._stream_address = config["stream_address"]
+        self.stream_address = config["stream_address"]
         self._state_byte_size = config.getint("state_byte_size")
         self._response_byte_size = config.getint("response_byte_size")
         self._init_attempts = config.getint("init_attempts")
@@ -136,8 +136,6 @@ class Connector:
                     self._state_thread.start()
                     self._sender_thread = threading.Thread(target=self._send_commands, daemon=True)
                     self._sender_thread.start()
-                    self._stream_thread = threading.Thread(target=self._receive_frames, daemon=True)
-                    self._stream_thread.start()
                     self.log.info("Connection established")
                     return True
 
@@ -145,7 +143,7 @@ class Connector:
         return False
 
     def _receive_response(self) -> None:
-        """Receive command response UDP datagrams from Tello, self.log socket error, close socket on exceptions."""
+        """Receive command response UDP datagrams from Tello, log socket error, close socket on exceptions."""
 
         while True:
             try:
@@ -160,7 +158,7 @@ class Connector:
                 break
 
     def _receive_state(self) -> None:
-        """Receive state UDP datagrams from Tello, self.log socket error, close socket on exceptions."""
+        """Receive state UDP datagrams from Tello, log socket error, close socket on exceptions."""
 
         while True:
             try:
@@ -171,23 +169,6 @@ class Connector:
                 self.log.error(err)
                 self.close()
                 break
-
-    def _receive_frames(self) -> None:
-        """Recieve stream from tello drone using OpenCv video capture. Last frame is stored in self.frame"""
-
-        tello_video = cv2.VideoCapture(self._stream_address)
-        tello_video.set(cv2.CAP_PROP_BUFFERSIZE, 2)
-        while True:
-            # Capture frame-by-framestreamon
-            ret, frame = tello_video.read()
-            cv2.imshow("stream", frame)
-            cv2.waitKey(1)
-            # if frame is read correctly ret is True
-            if not ret:
-                self.log.error("Can't receive frame")
-                break
-
-            self._frame = frame
 
     def send_instruction(self, instruction: MovementInstruction) -> bool:
         """Receive MovementInstruction and execute it as soon as possible.

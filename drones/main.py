@@ -12,9 +12,10 @@ from drones.connection.connector import Connector
 from common import movement_instruction as mi
 import multiprocessing
 import drones.image_processing as image_processing
-from drones.common.processClass import ProcessClass
+from drones.common.image_processor import ImageProcessor
 from drones.common.logger import setup_logger
 from drones.common.KBHit import KBHit
+from drones.common.frame_getter import FrameGetterProcess
 
 
 def process_communicator(connector: Connector) -> None:
@@ -44,22 +45,17 @@ if __name__ == "__main__":
     connector = Connector()
     frame_queue: multiprocessing.Queue = multiprocessing.Queue()
     result_queue: multiprocessing.Queue = multiprocessing.Queue()
-    image_processing_process = ProcessClass(frame_queue, result_queue, True)
+    image_processing_process = ImageProcessor(frame_queue, result_queue, True)
     image_processing_process.start()
+
+    frame_getter_process = FrameGetterProcess(frame_queue, connector.stream_address)
+    frame_getter_process.start()
 
     communication_thread = threading.Thread(target=process_communicator, args=(connector,), daemon=True)
     communication_thread.start()
     it = 0
     while True:
-        frame = connector.get_last_frame()
-        if frame is not None:
-            frame_queue.put(frame)
-            break
-    while True:
         if not result_queue.empty():
-            frame = connector.get_last_frame()
-            if frame is not None:
-                frame_queue.put(frame)
             result = result_queue.get()
             width, height, distance = 0, 0, 0
             it = it + 1
@@ -70,10 +66,10 @@ if __name__ == "__main__":
                     width = 20
                 elif result_width < -15:
                     width = -20
-                # if result_height > 15:
-                #     height = -20
-                # elif result_height < -15:
-                #     height = 20
-                # if result_distance > 200:
-                #     distance = 20
+                if result_height > 15:
+                    height = -20
+                elif result_height < -15:
+                    height = 20
+                if result_distance > 200:
+                    distance = 20
             connector.send_instruction(mi.MovementInstruction(0, distance, height, width))
