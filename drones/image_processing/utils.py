@@ -4,6 +4,7 @@ import imutils
 import configparser
 import typing
 import drones.image_processing.normalization as normalization
+import os
 
 
 def calculate_focal(known_width: float, known_distance: float, pixel_width: int) -> float:
@@ -108,7 +109,9 @@ def detect_object(image: np.ndarray) -> typing.Tuple[typing.Tuple[int, int], int
         This returned format is insired by OpenCV minEnclosingCircle function returned format.
     """
     config_parser = configparser.ConfigParser()
-    config_parser.read("image_processing/config.ini")
+    pwd = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(pwd, "config.ini")
+    config_parser.read(config_path)
     config = config_parser["COLOR_RANGE"]
 
     # Image normalization to make colors more visious and less light vulnerable.

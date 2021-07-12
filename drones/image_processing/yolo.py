@@ -10,6 +10,7 @@ from yolov5.utils.general import check_img_size, non_max_suppression, scale_coor
 from yolov5.utils.torch_utils import select_device
 import logging
 from typing import List, Tuple
+import os
 
 
 class YoloDetection:
@@ -17,7 +18,9 @@ class YoloDetection:
         self.log = logging.getLogger(__name__)
         # Initialize config.
         self.config_parser = configparser.ConfigParser()
-        self.config_parser.read("image_processing/config.ini")
+        pwd = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(pwd, "config.ini")
+        self.config_parser.read(config_path)
         self.config = self.config_parser["YOLO"]
 
         # Parse classes from config.
