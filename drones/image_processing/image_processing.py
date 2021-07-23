@@ -7,6 +7,7 @@ import drones.image_processing.normalization as normalization
 from drones.image_processing.yolo import YoloDetection
 from drones.image_processing.utils import distance_to_camera, vector_to_centre
 from typing import List, Tuple
+import os
 
 
 class ImageProcessing:
@@ -39,7 +40,9 @@ class ImageProcessing:
             detection list will be empty.
         """
         config_parser = configparser.ConfigParser()
-        config_parser.read("image_processing/config.ini")
+        pwd = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(pwd, "config.ini")
+        config_parser.read(config_path)
         config = config_parser["OBJECT"]
 
         focal = int(config["FOCAL"])
