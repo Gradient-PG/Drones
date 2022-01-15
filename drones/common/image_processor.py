@@ -10,7 +10,7 @@ import logging
 class ImageProcessor(multiprocessing.Process):
     """Class to store all data needed to sync data between processes"""
 
-    def __init__(self, frame_queue, result_queue, dump=False):
+    def __init__(self, frame_queue: multiprocessing.Queue, result_queue: multiprocessing.Queue, dump: bool = False):
         multiprocessing.Process.__init__(self)
         self.frame_queue = frame_queue
         self.result_queue = result_queue

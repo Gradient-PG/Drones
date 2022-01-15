@@ -10,7 +10,7 @@ import logging
 class FrameGetterProcess(multiprocessing.Process):
     """Class to store all data needed to sync data between main process, frame processing and this one"""
 
-    def __init__(self, frame_queue, stream_address):
+    def __init__(self, frame_queue: multiprocessing.Queue, stream_address: str):
         multiprocessing.Process.__init__(self)
         self.frame_queue = frame_queue
         self.stream_address = stream_address

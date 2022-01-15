@@ -34,7 +34,7 @@ def process_communicator(connector: Connector) -> None:
             if command_to_send == "s" and flag == 0:
                 flag = 1
                 connector.initialize()
-                # connector.takeoff()
+                connector.takeoff()
                 connector.stream_on()
             elif command_to_send == "h":
                 connector.halt()
