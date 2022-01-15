@@ -30,7 +30,10 @@ class FrameGetterProcess(multiprocessing.Process):
             if not ret:
                 break
             # No need to take every frame from stream, also it will block taking last available frame
-            if iterator == 60:
-                self.frame_queue.put(frame)
-                iterator = 0
+            try:
+                if not self.frame_queue.empty():
+                    self.frame_queue.get(False)
+            except Exception:
+                pass
+            self.frame_queue.put(frame, False)
             iterator += 1

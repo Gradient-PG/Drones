@@ -15,15 +15,15 @@ class ImageProcessor(multiprocessing.Process):
         self.frame_queue = frame_queue
         self.result_queue = result_queue
         self.dump = dump
+        self.img_processor = ImageProcessing()
 
     def run(self) -> None:
         """Get last frame from frame queue, process it and put result in result queue"""
-        self.img_processor = ImageProcessing()
         i = 0
         next_frame = None
         while True:
             try:
-                while True:
+                while not self.frame_queue.empty():
                     next_frame = self.frame_queue.get(False)
             except Exception:
                 pass

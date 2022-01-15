@@ -84,7 +84,7 @@ class Connector:
         self._last_instruction: MovementInstruction = None
 
         self._landed: bool = True
-        self._stream_on: bool = False
+        self.is_stream_on: bool = False
 
         self._current_rc: str = di.rc(0, 0, 0, 0)
         self._send_takeoff: bool = False
@@ -294,13 +294,13 @@ class Connector:
                     # If streamon command should be sent
                     if self._send_stream_on and self._send_command(di.streamon()):
                         # If sending streamon is successful set stream_on flag
-                        self._stream_on = True
+                        self.is_stream_on = True
                         self._send_stream_on = False
 
                     # If streamoff command should be sent
                     if self._send_stream_off and self._send_command(di.streamoff()):
                         # If sending streamoff is successful reset stream_on flag
-                        self._stream_on = False
+                        self.is_stream_on = False
                         self._send_stream_off = False
 
             else:
