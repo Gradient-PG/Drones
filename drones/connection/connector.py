@@ -98,7 +98,6 @@ class Connector:
         self._new_instruction_event = threading.Event()
         self._drone_response: str = None
         self._drone_response_time = None
-        self._frame = None
 
         self.should_stop: bool = False
 
@@ -256,10 +255,6 @@ class Connector:
         self._send_stream_off = False
         self._send_stream_on = False
         return
-
-    def get_last_frame(self) -> np.ndarray:
-        """Return a copy of last frame stored in self.frame"""
-        return self._frame
 
     def _send_commands(self):
         """Sends current RC and takeoff, land, streamon, streamoff commands until drone is disconnected.
