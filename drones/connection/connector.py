@@ -13,8 +13,7 @@ import numpy as np
 from ..common.movement_instruction import MovementInstruction
 from ..common import drone_instruction as di
 from ..common.drone_state import DroneState
-
-log = logging.getLogger()
+from drones.common.logger import setup_logger
 
 
 class Connector:
@@ -66,10 +65,11 @@ class Connector:
         config = configparser.ConfigParser()
         config.read("connection/config.ini")
         config = config["NETWORK"]
+        self.log = setup_logger("main_log", "logfile.log")
         self._address_response = (config["host"], config.getint("port_response"))
         self._address_state = (config["host"], config.getint("port_state"))
         self._tello_address = (config["tello_address"], config.getint("tello_port"))
-        self._stream_address = config["stream_address"]
+        self.stream_address = config["stream_address"]
         self._state_byte_size = config.getint("state_byte_size")
         self._response_byte_size = config.getint("response_byte_size")
         self._init_attempts = config.getint("init_attempts")
@@ -84,7 +84,7 @@ class Connector:
         self._last_instruction: MovementInstruction = None
 
         self._landed: bool = True
-        self._stream_on: bool = False
+        self.is_stream_on: bool = False
 
         self._current_rc: str = di.rc(0, 0, 0, 0)
         self._send_takeoff: bool = False
@@ -97,8 +97,8 @@ class Connector:
         self._response_event.clear()
         self._new_instruction_event = threading.Event()
         self._drone_response: str = None
+        self._drone_response_time = None
 
-        self.frame = None
         self.should_stop: bool = False
 
     def initialize(self) -> bool:
@@ -118,7 +118,7 @@ class Connector:
             self._socket_receive_state = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self._socket_receive_state.bind(self._address_state)
         except (OSError, socket.herror, socket.gaierror) as err:
-            log.error(f"Error {err.errno}: {err.strerror}")
+            self.log.error(f"Error {err.errno}: {err.strerror}")
         # If no exceptions thrown
         else:
             # Initialize response receiving thread and send SDK initialization command
@@ -127,23 +127,18 @@ class Connector:
 
             # Try to establish connection 5 times
             for tries in range(1, self._init_attempts + 1):
-                log.debug("Waiting for drone's response on initialize. Attempt " + str(tries) + ".")
+                self.log.debug("Waiting for drone's response on initialize. Attempt " + str(tries) + ".")
                 if self._send_command(di.command()):
                     # Set connection flag and initialize threads for receiving state, stream and sending commands
                     self._tello_connected = True
-                    self._state_thread = threading.Thread(target=self._receive_state)
-                    self._state_thread.setDaemon(True)
+                    self._state_thread = threading.Thread(target=self._receive_state, daemon=True)
                     self._state_thread.start()
-                    self._sender_thread = threading.Thread(target=self._send_commands)
-                    self._sender_thread.setDaemon(True)
+                    self._sender_thread = threading.Thread(target=self._send_commands, daemon=True)
                     self._sender_thread.start()
-                    self._stream_thread = threading.Thread(target=self._receive_frames)
-                    self._stream_thread.setDaemon(True)
-                    self._stream_thread.start()
-                    log.info("Connection established")
+                    self.log.info("Connection established")
                     return True
 
-        log.info("Connecting failed")
+        self.log.info("Connecting failed")
         return False
 
     def _receive_response(self) -> None:
@@ -154,10 +149,10 @@ class Connector:
                 data, server = self._socket_receive_response.recvfrom(self._response_byte_size)
                 self._drone_response = data.decode(encoding="utf-8")
                 self._response_event.set()
-                log.info("Drone response: " + self._drone_response + "\n")
+                self.log.info("Drone response: " + self._drone_response + "\n")
 
             except OSError as err:
-                log.error(err)
+                self.log.error(err)
                 self.close()
                 break
 
@@ -170,24 +165,9 @@ class Connector:
                 self._state = data.decode("ASCII")
 
             except OSError as err:
-                log.error(err)
+                self.log.error(err)
                 self.close()
                 break
-
-    def _receive_frames(self) -> None:
-        """Recieve stream from tello drone using OpenCv video capture. Last frame is stored in self.frame"""
-
-        tello_video = cv2.VideoCapture(self._stream_address)
-        tello_video.set(cv2.CAP_PROP_FPS, 3)
-        while True:
-            # Capture frame-by-framestreamon
-            ret, frame = tello_video.read()
-            # if frame is read correctly ret is True
-            if not ret:
-                log.error("Can't receive frame")
-                continue
-
-            self.frame = frame
 
     def send_instruction(self, instruction: MovementInstruction) -> bool:
         """Receive MovementInstruction and execute it as soon as possible.
@@ -255,9 +235,9 @@ class Connector:
             self._socket_receive_response.close()
             self._socket_receive_state.close()
             self._tello_connected = False
-            log.info("Connection closed.")
+            self.log.info("Connection closed.")
         else:
-            log.info("Connection is already closed")
+            self.log.info("Connection is already closed")
 
     def halt(self) -> None:
         """Interrupt currently performed task and attempt to stop the drone quickly as it is possible.
@@ -309,17 +289,17 @@ class Connector:
                     # If streamon command should be sent
                     if self._send_stream_on and self._send_command(di.streamon()):
                         # If sending streamon is successful set stream_on flag
-                        self._stream_on = True
+                        self.is_stream_on = True
                         self._send_stream_on = False
 
                     # If streamoff command should be sent
                     if self._send_stream_off and self._send_command(di.streamoff()):
                         # If sending streamoff is successful reset stream_on flag
-                        self._stream_on = False
+                        self.is_stream_on = False
                         self._send_stream_off = False
 
             else:
-                log.info("Sending thread stopping, Tello not connected!")
+                self.log.error("Send command failed, Tello not connected!")
                 break
 
     def takeoff(self) -> None:
@@ -347,18 +327,17 @@ class Connector:
 
         self._response_event.clear()
 
-        log.debug("Sending " + str(command))
+        self.log.debug("Sending " + str(command))
         self._socket_receive_response.sendto(command.encode(encoding="utf-8"), self._tello_address)
 
         if self._response_event.wait(timeout=self._response_timeout):
             if self._drone_response == "ok":
-                log.debug("Drone received: " + str(command))
+                self.log.debug("Drone received: " + str(command))
                 return True
             elif "error" in self._drone_response:
-                log.debug("Unknown error, halting")
-                self.halt()
+                self.log.debug("Unknown error, halting")
         else:
-            log.debug("Drone has not responded within timeout: " + str(command))
+            self.log.debug("Drone has not responded within timeout: " + str(command))
 
         return False
 
@@ -366,7 +345,4 @@ class Connector:
         """Send RC command to tello, socket must be bound."""
         rc = self._current_rc
         self._socket_receive_response.sendto(rc.encode(encoding="utf-8"), self._tello_address)
-        log.debug("Sent " + str(rc))
-
-
-connector = Connector()
+        self.log.debug("Sent " + str(rc))

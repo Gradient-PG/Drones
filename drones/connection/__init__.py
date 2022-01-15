@@ -3,4 +3,4 @@
 Additional info.
 """
 # Import connector
-from drones.connection.connector import connector
+from drones.connection.connector import Connector
