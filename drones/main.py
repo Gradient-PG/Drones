@@ -16,6 +16,7 @@ from drones.common.image_processor import ImageProcessor
 from drones.common.logger import setup_logger
 from drones.common.KBHit import KBHit
 from drones.common.frame_getter import FrameGetterProcess
+from drones.common.fuzzy_logic import FuzzyLogic
 import queue
 
 
@@ -56,23 +57,25 @@ if __name__ == "__main__":
         time.sleep(0.001)
     frame_getter_process.start()
 
+    fuzzy_logic = FuzzyLogic()
     it = 0
+    old_distance = 0.0
+    old_speed = 0.0
+
     while True:
         if not result_queue.empty():
             result = result_queue.get()
-            width, height, distance = 0, 0, 0
+            width, height, distance = 0.0, 0.0, 0.0
             it = it + 1
             connector.log.info(str(result) + str(it))
             if len(result) > 0:
                 result_width, result_height, result_distance = result[0]
-                if result_width > 15:
-                    width = 10
-                elif result_width < -15:
-                    width = -10
-                if result_height > 15:
-                    height = 10
-                elif result_height < -15:
-                    height = -10
-                if result_distance > 300:
-                    distance = 20
-            connector.send_instruction(mi.MovementInstruction(0, distance, height, width))
+
+                width = fuzzy_logic.get_width_prediction(result_width)
+                height = fuzzy_logic.get_height_prediction(result_height)
+                speed = fuzzy_logic.get_speed_prediction(
+                    distance_value=result_distance, distance_diff=(result_distance - old_distance), old_speed=old_speed
+                )
+                old_speed = speed
+                old_distance = result_distance
+                connector.send_instruction(mi.MovementInstruction(0, int(speed), int(height), int(width)))
